@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/vendor/autoload.php';
 
 // Cargar el core del framework
 $f3 = require('base.php'); // o usa 'vendor/autoload.php' si lo tienes con Composer
@@ -24,5 +25,7 @@ $options = array(
 // Crear la conexión a la base de datos
 $db = new \DB\SQL('mysql:host=localhost;port=3306;dbname=gestion_fp', 'root', ''); // cambia "tu_basedatos"
 $f3->set('DB', $db);
+
+
 
 $f3->run();
