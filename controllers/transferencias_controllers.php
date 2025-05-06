@@ -9,6 +9,7 @@ class transferencias_controllers
     }
     public function crear($f3)
     {
+        $this->validarToken($f3);
         $this->m_transferencia->set('cuenta_id', $f3->get('POST.cuenta_id'));
         $this->m_transferencia->set('tipo', $f3->get('POST.tipo'));
         $this->m_transferencia->set('cuenta_origen', $f3->get('POST.cuenta_origen'));
@@ -21,6 +22,32 @@ class transferencias_controllers
             ]
         ]);
     }
+    private function validarToken($f3)
+    {
+        $headers = getallheaders();
+        if (!isset($headers['Authorization'])) {
+            echo json_encode(['mensaje' => 'Token no proporcionado']);
+            http_response_code(401);
+            exit;
+        }
+
+        if (preg_match('/Bearer\s(\S+)/', $headers['Authorization'], $matches)) {
+            $token = $matches[1];
+            try {
+                $decoded = \Firebase\JWT\JWT::decode($token, new \Firebase\JWT\Key('$#Gre1410#$', 'HS256'));
+                $f3->set('user_id', $decoded->data->user_id);
+            } catch (Exception $e) {
+                echo json_encode(['mensaje' => 'Token inválido o expirado']);
+                http_response_code(403);
+                exit;
+            }
+        } else {
+            echo json_encode(['mensaje' => 'Formato de token inválido']);
+            http_response_code(400);
+            exit;
+        }
+    }
+
 
     public function consultar($f3)
     {

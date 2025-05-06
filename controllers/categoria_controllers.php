@@ -9,6 +9,7 @@ class categoria_controllers
     }
     public function crear($f3)
     {
+        $this->validarToken($f3);
         $this->m_categoria->set('nombre', $f3->get('POST.nombre'));
         $this->m_categoria->set('tipo', $f3->get('POST.tipo'));
         $this->m_categoria->save();
@@ -62,6 +63,32 @@ class categoria_controllers
             ]
         ]);
     }
+    private function validarToken($f3)
+    {
+        $headers = getallheaders();
+        if (!isset($headers['Authorization'])) {
+            echo json_encode(['mensaje' => 'Token no proporcionado']);
+            http_response_code(401);
+            exit;
+        }
+
+        if (preg_match('/Bearer\s(\S+)/', $headers['Authorization'], $matches)) {
+            $token = $matches[1];
+            try {
+                $decoded = \Firebase\JWT\JWT::decode($token, new \Firebase\JWT\Key('$#Gre1410#$', 'HS256'));
+                $f3->set('user_id', $decoded->data->user_id);
+            } catch (Exception $e) {
+                echo json_encode(['mensaje' => 'Token inválido o expirado']);
+                http_response_code(403);
+                exit;
+            }
+        } else {
+            echo json_encode(['mensaje' => 'Formato de token inválido']);
+            http_response_code(400);
+            exit;
+        }
+    }
+
     public function eliminar($f3)
     {
         $categoria_id = $f3->get('POST.categoria_id');
