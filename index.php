@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '/vendor/autoload.php';
 
+header("Access-Control-Allow-Origin: *");
+header("Content-Type: application/json");
+
 // Cargar el core del framework
 $f3 = require('base.php'); // o usa 'vendor/autoload.php' si lo tienes con Composer
 
