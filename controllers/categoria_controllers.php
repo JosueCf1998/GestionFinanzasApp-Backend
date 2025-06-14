@@ -1,15 +1,23 @@
 <?php
 
-class categoria_controllers
+require_once 'BaseController.php';
+
+class categoria_controllers extends BaseController
 {
+    
     public $m_categoria = null;
+
     public function __construct()
     {
         $this->m_categoria = new m_categorias();
     }
+
+    // Métodos de respuesta centralizados
+    
+
     public function crear($f3)
     {
-        $this->validarToken($f3);
+        #$this->validarToken($f3);
         $this->m_categoria->set('nombre', $f3->get('POST.nombre'));
         $this->m_categoria->set('tipo', $f3->get('POST.tipo'));
         $this->m_categoria->save();
@@ -63,31 +71,31 @@ class categoria_controllers
             ]
         ]);
     }
-    private function validarToken($f3)
-    {
-        $headers = getallheaders();
-        if (!isset($headers['Authorization'])) {
-            echo json_encode(['mensaje' => 'Token no proporcionado']);
-            http_response_code(401);
-            exit;
-        }
+    // private function validarToken($f3)
+    // {
+    //     $headers = getallheaders();
+    //     if (!isset($headers['Authorization'])) {
+    //         echo json_encode(['mensaje' => 'Token no proporcionado']);
+    //         http_response_code(401);
+    //         exit;
+    //     }
 
-        if (preg_match('/Bearer\s(\S+)/', $headers['Authorization'], $matches)) {
-            $token = $matches[1];
-            try {
-                $decoded = \Firebase\JWT\JWT::decode($token, new \Firebase\JWT\Key('$#Gre1410#$', 'HS256'));
-                $f3->set('user_id', $decoded->data->user_id);
-            } catch (Exception $e) {
-                echo json_encode(['mensaje' => 'Token inválido o expirado']);
-                http_response_code(403);
-                exit;
-            }
-        } else {
-            echo json_encode(['mensaje' => 'Formato de token inválido']);
-            http_response_code(400);
-            exit;
-        }
-    }
+    //     if (preg_match('/Bearer\s(\S+)/', $headers['Authorization'], $matches)) {
+    //         $token = $matches[1];
+    //         try {
+    //             $decoded = \Firebase\JWT\JWT::decode($token, new \Firebase\JWT\Key('$#Gre1410#$', 'HS256'));
+    //             $f3->set('user_id', $decoded->data->user_id);
+    //         } catch (Exception $e) {
+    //             echo json_encode(['mensaje' => 'Token inválido o expirado']);
+    //             http_response_code(403);
+    //             exit;
+    //         }
+    //     } else {
+    //         echo json_encode(['mensaje' => 'Formato de token inválido']);
+    //         http_response_code(400);
+    //         exit;
+    //     }
+    // }
 
     public function eliminar($f3)
     {
@@ -105,18 +113,21 @@ class categoria_controllers
             'info' => []
         ]);
     }
+    
+    
+    
     public function listado($f3)
     {
         $result = $this->m_categoria->find();
+        $items = [];
         foreach ($result as $categoria) {
             $items[] = $categoria->cast();
         }
-        echo json_encode([
-            'mensaje' => count($items) > 0 ? '' : 'aun no hay registros que mostrar',
-            'info' => [
-                'items' => $items,
-                'Total' => count($items),
-            ]
-        ]);
+     if (count($items) > 0) {
+         $this->successResponse(['items' => $items, 'Total' => count($items)]);
+     } else {
+         $this->errorResponse('Aún no hay registros que mostrar', 404, ['items' => [], 'Total' => 0]);
+     }
+             
     }
 }
