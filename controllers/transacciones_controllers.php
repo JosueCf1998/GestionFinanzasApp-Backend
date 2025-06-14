@@ -1,6 +1,8 @@
 <?php
 
-class transacciones_controllers
+require_once 'BaseController.php';
+
+class transacciones_controllers extends BaseController
 {
     public $m_transaccion = null;
     public function __construct()
@@ -118,15 +120,15 @@ class transacciones_controllers
     public function listado($f3)
     {
         $result = $this->m_transaccion->find();
+        $items = [];
         foreach ($result as $transaccion) {
             $items[] = $transaccion->cast();
         }
-        echo json_encode([
-            'mensaje' => count($items) > 0 ? '' : 'aun no hay registros que mostrar',
-            'info' => [
-                'items' => $items,
-                'Total' => count($items),
-            ]
-        ]);
+        if (count($items) > 0) {
+         $this->successResponse(['items' => $items, 'Total' => count($items)]);
+     } else {
+         $this->errorResponse('Aún no hay registros que mostrar', 404, ['items' => [], 'Total' => 0]);
+     }
     }
+    
 }

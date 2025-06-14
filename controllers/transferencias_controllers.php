@@ -1,6 +1,8 @@
 <?php
 
-class transferencias_controllers
+require_once 'BaseController.php';
+
+class transferencias_controllers extends BaseController
 {
     public $m_transferencia = null;
     public function __construct()
@@ -113,15 +115,14 @@ class transferencias_controllers
     public function listado($f3)
     {
         $result = $this->m_transferencia->find();
+        $items = [];
         foreach ($result as $transferencia) {
             $items[] = $transferencia->cast();
         }
-        echo json_encode([
-            'mensaje' => count($items) > 0 ? '' : 'aun no hay registros que mostrar',
-            'info' => [
-                'items' => $items,
-                'Total' => count($items),
-            ]
-        ]);
+        if (count($items) > 0) {
+         $this->successResponse(['items' => $items, 'Total' => count($items)]);
+     } else {
+         $this->errorResponse('Aún no hay registros que mostrar', 404, ['items' => [], 'Total' => 0]);
+     }
     }
 }

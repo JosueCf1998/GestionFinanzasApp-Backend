@@ -1,6 +1,8 @@
 <?php
 
-class cuentas_controllers
+require_once 'BaseController.php';
+
+class cuentas_controllers extends BaseController
 {
     public $m_cuenta = null;
     public function __construct()
@@ -111,15 +113,14 @@ class cuentas_controllers
     public function listado($f3)
     {
         $result = $this->m_cuenta->find();
+        $items = [];
         foreach ($result as $cuenta) {
             $items[] = $cuenta->cast();
         }
-        echo json_encode([
-            'mensaje' => count($items) > 0 ? '' : 'aun no hay registros que mostrar',
-            'info' => [
-                'items' => $items,
-                'Total' => count($items),
-            ]
-        ]);
+        if (count($items) > 0) {
+         $this->successResponse(['items' => $items, 'Total' => count($items)]);
+     } else {
+         $this->errorResponse('Aún no hay registros que mostrar', 404, ['items' => [], 'Total' => 0]);
+     }
     }
 }

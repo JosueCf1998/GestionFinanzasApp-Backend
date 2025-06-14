@@ -3,7 +3,9 @@
 use \Firebase\JWT\JWT;
 use \Firebase\JWT\Key;
 
-class usuario_controllers
+require_once 'BaseController.php';
+
+class usuario_controllers extends BaseController
 {
     public $m_user = null;
     private $jwt_key = "$#Gre1410#$"; // Cámbiala por algo seguro
@@ -165,12 +167,17 @@ class usuario_controllers
         foreach ($result as $user) {
             $items[] = $user->cast();
         }
-        echo json_encode([
-            'mensaje' => count($items) > 0 ? '' : 'Aún no hay registros que mostrar',
-            'info' => [
-                'items' => $items,
-                'Total' => count($items),
-            ]
-        ]);
+        // echo json_encode([
+        //     'mensaje' => count($items) > 0 ? '' : 'Aún no hay registros que mostrar',
+        //     'info' => [
+        //         'items' => $items,
+        //         'Total' => count($items),
+        //     ]
+        // ]);
+        if (count($items) > 0) {
+         $this->successResponse(['items' => $items, 'Total' => count($items)]);
+     } else {
+         $this->errorResponse('Aún no hay registros que mostrar', 404, ['items' => [], 'Total' => 0]);
+     }
     }
 }
