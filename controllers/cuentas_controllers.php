@@ -10,19 +10,24 @@ class cuentas_controllers extends BaseController
         $this->m_cuenta = new m_cuentas();
     }
     public function crear($f3)
-    {
-        // $this->validarToken($f3);
-        $this->m_cuenta->set('usuario_id', $f3->get('POST.usuario_id'));
-        $this->m_cuenta->set('nombre', $f3->get('POST.nombre'));
-        $this->m_cuenta->set('saldo', $f3->get('POST.saldo'));
-        $this->m_cuenta->save();
-        echo json_encode([
-            'mensaje' => 'Cuenta creada',
-            'info' => [
-                'id' => $this->m_cuenta->get('id')
-            ]
-        ]);
-    }
+     {
+         // $this->validarToken($f3); // Descomenta si estás usando autenticación
+     
+         $this->m_cuenta->set('usuario_id', $f3->get('POST.usuario_id'));
+         $this->m_cuenta->set('nombre', $f3->get('POST.nombre'));
+         $this->m_cuenta->set('saldo', $f3->get('POST.saldo'));
+     
+         if ($this->m_cuenta->save()) {
+             $this->successResponse([
+                 'mensaje' => 'Cuenta creada correctamente',
+                 'info' => [
+                     'id' => $this->m_cuenta->get('id')
+                 ]
+             ]);
+         } else {
+             $this->errorResponse('No se pudo crear la cuenta', 500);
+         }
+     }
     // private function validarToken($f3)
     // {
     //     $headers = getallheaders();

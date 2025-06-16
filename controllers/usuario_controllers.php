@@ -16,61 +16,67 @@ class usuario_controllers extends BaseController
     }
 
     public function crear($f3)
-    {
-        $this->m_user->load(['nombre = ? or email = ?', $f3->get('POST.nombre'), $f3->get('POST.email')]);
-        if ($this->m_user->loaded() > 0) {
-            echo json_encode([
-                'mensaje' => 'Ya existe un Usuario con el nombre o correo que intenta registrar',
-                'info' => ['id' => 0]
-            ]);
-            return;
-        }
+     {
+         $this->m_user->load(['nombre = ? OR email = ?', $f3->get('POST.nombre'), $f3->get('POST.email')]);
+     
+         if ($this->m_user->loaded() > 0) {
+             $this->errorResponse(
+                 'Ya existe un Usuario con el nombre o correo que intenta registrar',
+                 409, // Código HTTP para conflicto
+                 ['id' => 0]
+             );
+             return;
+         }
+     
+         $this->m_user->set('nombre', $f3->get('POST.nombre'));
+         $this->m_user->set('apellidos', $f3->get('POST.apellidos'));
+         $this->m_user->set('email', $f3->get('POST.email'));
+     
+         $password_hash = password_hash($f3->get('POST.password'), PASSWORD_DEFAULT);
+         $this->m_user->set('password', $password_hash);
+     
+         $this->m_user->set('fecha_registro', date('Y-m-d H:i:s'));
+     
+         if ($this->m_user->save()) {
+             $this->successResponse([
+                 'mensaje' => 'Usuario creado correctamente',
+                 'info' => ['id' => $this->m_user->get('id')]
+             ]);
+         } else {
+             $this->errorResponse('No se pudo crear el usuario', 500);
+         }
+     }
 
-        $this->m_user->set('nombre', $f3->get('POST.nombre'));
-        $this->m_user->set('apellidos', $f3->get('POST.apellidos'));
-        $this->m_user->set('email', $f3->get('POST.email'));
-        $password_hash = password_hash($f3->get('POST.password'), PASSWORD_DEFAULT);
-        $this->m_user->set('password', $password_hash);
-        $this->m_user->set('fecha_registro', date('Y-m-d H:i:s'));
-        $this->m_user->save();
-
-        echo json_encode([
-            'mensaje' => 'Usuario creado',
-            'info' => ['id' => $this->m_user->get('id')]
-        ]);
-    }
 
     public function login($f3)
-    {
-        $email = $f3->get('POST.email');
-        $password = $f3->get('POST.password');
+     {
+         $email = $f3->get('POST.email');
+         $password = $f3->get('POST.password');
+     
+         $this->m_user->load(['email = ?', $email]);
+     
+         if ($this->m_user->loaded() > 0 && password_verify($password, $this->m_user->password)) {
+             // Aquí podrías generar el token JWT si lo deseas
+             // $payload = [
+             //     'iat' => time(),
+             //     'exp' => time() + (60 * 60), // 1 hora
+             //     'data' => [
+             //         'user_id' => $this->m_user->id,
+             //         'email' => $this->m_user->email
+             //     ]
+             // ];
+             // $token = JWT::encode($payload, $this->jwt_key, 'HS256');
+     
+             $this->successResponse([
+                 'mensaje' => 'Login exitoso',
+                 // 'token' => $token, // descomenta cuando uses JWT
+                 'info' => $this->m_user->cast()
+             ]);
+         } else {
+             $this->errorResponse('Credenciales incorrectas', 401, ['info' => []]);
+         }
+     }
 
-        $this->m_user->load(['email = ?', $email]);
-
-        if ($this->m_user->loaded() > 0 && password_verify($password, $this->m_user->password)) {
-            // Creamos el token JWT
-            // $payload = [
-            //     'iat' => time(),
-            //     'exp' => time() + (60 * 60), // 1 hora
-            //     'data' => [
-            //         'user_id' => $this->m_user->id,
-            //         'email' => $this->m_user->email
-            //     ]
-            // ];
-            // $token = JWT::encode($payload, $this->jwt_key, 'HS256');
-
-            echo json_encode([
-                'mensaje' => 'Login exitoso',
-                'token' => $token,
-                'info' => $this->m_user->cast()
-            ]);
-        } else {
-            echo json_encode([
-                'mensaje' => 'Credenciales incorrectas',
-                'info' => []
-            ]);
-        }
-    }
 
     // private function validarToken($f3)
     // {

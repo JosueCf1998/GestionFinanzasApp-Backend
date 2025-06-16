@@ -16,18 +16,24 @@ class categoria_controllers extends BaseController
     
 
     public function crear($f3)
-    {
-        #$this->validarToken($f3);
-        $this->m_categoria->set('nombre', $f3->get('POST.nombre'));
-        $this->m_categoria->set('tipo', $f3->get('POST.tipo'));
-        $this->m_categoria->save();
-        echo json_encode([
-            'mensaje' => 'Categoria creada',
-            'info' => [
-                'id' => $this->m_categoria->get('id')
-            ]
-        ]);
-    }
+     {
+         // $this->validarToken($f3); // Descomenta si estás usando validación por token
+     
+         $this->m_categoria->set('nombre', $f3->get('POST.nombre'));
+         $this->m_categoria->set('tipo', $f3->get('POST.tipo'));
+     
+         if ($this->m_categoria->save()) {
+             $this->successResponse([
+                 'mensaje' => 'Categoría creada correctamente',
+                 'info' => [
+                     'id' => $this->m_categoria->get('id')
+                 ]
+             ]);
+         } else {
+             $this->errorResponse('No se pudo crear la categoría', 500);
+         }
+     }
+
     public function actualizar($f3)
     {
         $categoria_id = $f3->get('PARAMS.categoria_id');

@@ -10,20 +10,26 @@ class transferencias_controllers extends BaseController
         $this->m_transferencia = new m_transferencias();
     }
     public function crear($f3)
-    {
-        #$this->validarToken($f3);
-        $this->m_transferencia->set('cuenta_id', $f3->get('POST.cuenta_id'));
-        $this->m_transferencia->set('tipo', $f3->get('POST.tipo'));
-        $this->m_transferencia->set('cuenta_origen', $f3->get('POST.cuenta_origen'));
-        $this->m_transferencia->set('cuenta_destino', $f3->get('POST.cuenta_destino'));
-        $this->m_transferencia->save();
-        echo json_encode([
-            'mensaje' => 'Transferencia creada',
-            'info' => [
-                'id' => $this->m_transferencia->get('id')
-            ]
-        ]);
-    }
+     {
+         // $this->validarToken($f3); // Descomenta si usas autenticación
+     
+         $this->m_transferencia->set('cuenta_id', $f3->get('POST.cuenta_id'));
+         $this->m_transferencia->set('tipo', $f3->get('POST.tipo'));
+         $this->m_transferencia->set('cuenta_origen', $f3->get('POST.cuenta_origen'));
+         $this->m_transferencia->set('cuenta_destino', $f3->get('POST.cuenta_destino'));
+     
+         if ($this->m_transferencia->save()) {
+             $this->successResponse([
+                 'mensaje' => 'Transferencia creada correctamente',
+                 'info' => [
+                     'id' => $this->m_transferencia->get('id')
+                 ]
+             ]);
+         } else {
+             $this->errorResponse('No se pudo crear la transferencia', 500);
+         }
+     }
+
     // private function validarToken($f3)
     // {
     //     $headers = getallheaders();

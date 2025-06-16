@@ -10,22 +10,27 @@ class transacciones_controllers extends BaseController
         $this->m_transaccion = new m_transacciones();
     }
     public function crear($f3)
-    {
-        #$this->validarToken($f3);
-        $this->m_transaccion->set('categoria_id', $f3->get('POST.categoria_id'));
-        $this->m_transaccion->set('cuenta_id', $f3->get('POST.cuenta_id'));
-        $this->m_transaccion->set('monto', $f3->get('POST.monto'));
-        $this->m_transaccion->set('tipo', $f3->get('POST.tipo'));
-        $this->m_transaccion->set('descripcion', $f3->get('POST.descripcion'));
-        $this->m_transaccion->set('fecha_registro', $f3->get('POST.fecha_registro'));
-        $this->m_transaccion->save();
-        echo json_encode([
-            'mensaje' => 'transacción creada',
-            'info' => [
-                'id' => $this->m_transaccion->get('id')
-            ]
-        ]);
-    }
+     {
+         // $this->validarToken($f3); // Descomenta si estás usando autenticación
+     
+         $this->m_transaccion->set('categoria_id', $f3->get('POST.categoria_id'));
+         $this->m_transaccion->set('cuenta_id', $f3->get('POST.cuenta_id'));
+         $this->m_transaccion->set('monto', $f3->get('POST.monto'));
+         $this->m_transaccion->set('tipo', $f3->get('POST.tipo'));
+         $this->m_transaccion->set('descripcion', $f3->get('POST.descripcion'));
+         $this->m_transaccion->set('fecha_registro', $f3->get('POST.fecha_registro'));
+     
+         if ($this->m_transaccion->save()) {
+             $this->successResponse([
+                 'mensaje' => 'Transacción creada correctamente',
+                 'info' => [
+                     'id' => $this->m_transaccion->get('id')
+                 ]
+             ]);
+         } else {
+             $this->errorResponse('No se pudo crear la transacción', 500);
+         }
+     }
 
     // private function validarToken($f3)
     // {
