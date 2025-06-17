@@ -106,64 +106,87 @@ class usuario_controllers extends BaseController
     // }
 
     public function consultar($f3)
-    {
-        // $this->validarToken($f3); // Proteger con token
-        $user_id = $f3->get('PARAMS.user_id');
-        $this->m_user->load(['id = ?', $user_id]);
-        $msg = '';
-        $items = array();
-        if ($this->m_user->loaded() > 0) {
-            $msg = 'Usuario encontrado';
-            $items = $this->m_user->cast();
-        } else {
-            $msg = 'Usuario no encontrado';
-        }
-        echo json_encode([
-            'mensaje' => $msg,
-            'info' => ['items' => $items]
-        ]);
-    }
+     {
+         // $this->validarToken($f3); // Descomenta si usas autenticación
+     
+         $user_id = $f3->get('PARAMS.user_id');
+         $this->m_user->load(['id = ?', $user_id]);
+     
+         if ($this->m_user->loaded() > 0) {
+             $this->successResponse([
+                 'mensaje' => 'Usuario encontrado',
+                 'info' => ['items' => $this->m_user->cast()]
+             ]);
+         } else {
+             $this->errorResponse(
+                 'Usuario no encontrado',
+                 404,
+                 ['items' => []]
+             );
+         }
+     }
+
 
     public function eliminar($f3)
-    {
-        // $this->validarToken($f3);
-        $user_id = $f3->get('POST.user_id');
-        $this->m_user->load(['id = ?', $user_id]);
-        $msg = '';
-        if ($this->m_user->loaded() > 0) {
-            $msg = 'Usuario eliminado';
-            $this->m_user->erase();
-        } else {
-            $msg = 'Usuario no encontrado';
-        }
-        echo json_encode(['mensaje' => $msg, 'info' => []]);
-    }
+     {
+         $user_id = $f3->get('POST.user_id');
+         $this->m_user->load(['id = ?', $user_id]);
+     
+         if ($this->m_user->loaded() > 0) {
+             $this->m_user->erase();
+             $this->successResponse([
+                 'mensaje' => 'Usuario eliminado',
+                 'info' => ['id' => $user_id]
+             ]);
+         } else {
+             $this->errorResponse(
+                 'Usuario no encontrado',
+                 404
+             );
+         }
+     }
+
 
     public function actualizar($f3)
-    {
-        // $this->validarToken($f3);
-        $user_id = $f3->get('PARAMS.user_id');
-        $this->m_user->load(['id = ?', $user_id]);
-        $msg = '';
-        if ($this->m_user->loaded() > 0) {
-            $_user = new m_usuarios();
-            $_user->load(['email = ? AND id <> ?', $f3->get('POST.email'), $user_id]);
-            if ($_user->loaded() > 0) {
-                $msg = 'El correo ya está en uso por otro usuario';
-            } else {
-                $this->m_user->set('nombre', $f3->get('POST.nombre'));
-                $this->m_user->set('apellidos', $f3->get('POST.apellidos'));
-                $this->m_user->set('email', $f3->get('POST.email'));
-                $this->m_user->set('password', $f3->get('POST.password')); // Recomendado encriptar si es nuevo
-                $this->m_user->set('fecha_registro', date('Y-m-d H:i:s'));
-                $this->m_user->save();
-                $msg = 'Usuario actualizado';
-            }
-        } else {
-            $msg = 'Usuario no encontrado';
-        }
-        echo json_encode(['mensaje' => $msg, 'info' => []]);
-    }
+     {
+         $user_id = $f3->get('PARAMS.user_id');
+         $this->m_user->load(['id = ?', $user_id]);
+     
+         if ($this->m_user->loaded() > 0) {
+             $_user = new m_usuarios();
+             $_user->load(['email = ? AND id <> ?', $f3->get('POST.email'), $user_id]);
+     
+             if ($_user->loaded() > 0) {
+                 $this->errorResponse(
+                     'El correo ya está en uso por otro usuario',
+                     409
+                 );
+             } else {
+                 $this->m_user->set('nombre', $f3->get('POST.nombre'));
+                 $this->m_user->set('apellidos', $f3->get('POST.apellidos'));
+                 $this->m_user->set('email', $f3->get('POST.email'));
+     
+                 $password = $f3->get('POST.password');
+                 if (!empty($password)) {
+                     $password_hash = password_hash($password, PASSWORD_DEFAULT);
+                     $this->m_user->set('password', $password_hash);
+                 }
+     
+                 $this->m_user->save();
+     
+                 $this->successResponse([
+                     'mensaje' => 'Usuario actualizado',
+                     'info' => ['id' => $this->m_user->get('id')]
+                 ]);
+             }
+         } else {
+             $this->errorResponse(
+                 'Usuario no encontrado',
+                 404
+             );
+         }
+     }
+
 
     public function listado($f3)
     {
@@ -173,13 +196,7 @@ class usuario_controllers extends BaseController
         foreach ($result as $user) {
             $items[] = $user->cast();
         }
-        // echo json_encode([
-        //     'mensaje' => count($items) > 0 ? '' : 'Aún no hay registros que mostrar',
-        //     'info' => [
-        //         'items' => $items,
-        //         'Total' => count($items),
-        //     ]
-        // ]);
+      
         if (count($items) > 0) {
          $this->successResponse(['items' => $items, 'Total' => count($items)]);
      } else {

@@ -35,48 +35,58 @@ class categoria_controllers extends BaseController
      }
 
     public function actualizar($f3)
-    {
-        $categoria_id = $f3->get('PARAMS.categoria_id');
-        $this->m_categoria->load(['id = ?', $categoria_id]);
-        $msg = '';
-        if ($this->m_categoria->loaded() > 0) {
-            $_categoria = new m_categorias();
-            $_categoria->load(['nombre = ? AND id <> ?', $f3->get('POST.nombre'), $categoria_id]);
-            if ($_categoria->loaded() > 0) {
-                $msg = 'Registro no se pudo modificar debido a que el nombre se encuentra en uso por otra categoria';
-            } else {
-                $this->m_categoria->set('nombre', $f3->get('POST.nombre'));
-                $this->m_categoria->set('tipo', $f3->get('POST.tipo'));
-                $this->m_categoria->save();
-                $msg = 'Categoria actualizada';
-            }
-        } else {
-            $msg = 'Categoria no encontrada';
-        }
-        echo json_encode([
-            'mensaje' => $msg,
-            'info' => []
-        ]);
-    }
+     {
+         $categoria_id = $f3->get('PARAMS.categoria_id');
+         $this->m_categoria->load(['id = ?', $categoria_id]);
+     
+         if ($this->m_categoria->loaded() > 0) {
+             $_categoria = new m_categorias();
+             $_categoria->load(['nombre = ? AND id <> ?', $f3->get('POST.nombre'), $categoria_id]);
+     
+             if ($_categoria->loaded() > 0) {
+                 $this->errorResponse(
+                     'Registro no se pudo modificar debido a que el nombre se encuentra en uso por otra categoría',
+                     409
+                 );
+             } else {
+                 $this->m_categoria->set('nombre', $f3->get('POST.nombre'));
+                 $this->m_categoria->set('tipo', $f3->get('POST.tipo'));
+                 $this->m_categoria->save();
+     
+                 $this->successResponse([
+                     'mensaje' => 'Categoría actualizada',
+                     'info' => ['id' => $this->m_categoria->get('id')]
+                 ]);
+             }
+         } else {
+             $this->errorResponse(
+                 'Categoría no encontrada',
+                 404
+             );
+         }
+     }
+
     public function consultar($f3)
-    {
-        $categoria_id = $f3->get('PARAMS.categoria_id');
-        $this->m_categoria->load(['id = ?', $categoria_id]);
-        $msg = '';
-        $items = array();
-        if ($this->m_categoria->loaded() > 0) {
-            $msg = 'Categoria encontrada';
-            $items = $this->m_categoria->cast();
-        } else {
-            $msg = 'Categoria no encontrada';
-        }
-        echo json_encode([
-            'mensaje' => $msg,
-            'info' => [
-                'items' => $items
-            ]
-        ]);
-    }
+     {
+         $categoria_id = $f3->get('PARAMS.categoria_id');
+         $this->m_categoria->load(['id = ?', $categoria_id]);
+     
+         if ($this->m_categoria->loaded() > 0) {
+             $this->successResponse([
+                 'mensaje' => 'Categoría encontrada',
+                 'info' => [
+                     'items' => $this->m_categoria->cast()
+                 ]
+             ]);
+         } else {
+             $this->errorResponse(
+                 'Categoría no encontrada',
+                 404,
+                 ['items' => []]
+             );
+         }
+     }
+
     // private function validarToken($f3)
     // {
     //     $headers = getallheaders();
@@ -104,21 +114,24 @@ class categoria_controllers extends BaseController
     // }
 
     public function eliminar($f3)
-    {
-        $categoria_id = $f3->get('POST.categoria_id');
-        $this->m_categoria->load(['id = ?', $categoria_id]);
-        $msg = '';
-        if ($this->m_categoria->loaded() > 0) {
-            $msg = 'Categoria eliminada';
-            $this->m_categoria->erase();
-        } else {
-            $msg = 'Categoria no encontrada';
-        }
-        echo json_encode([
-            'mensaje' => $msg,
-            'info' => []
-        ]);
-    }
+     {
+         $categoria_id = $f3->get('POST.categoria_id');
+         $this->m_categoria->load(['id = ?', $categoria_id]);
+     
+         if ($this->m_categoria->loaded() > 0) {
+             $this->m_categoria->erase();
+             $this->successResponse([
+                 'mensaje' => 'Categoría eliminada',
+                 'info' => ['id' => $categoria_id]
+             ]);
+         } else {
+             $this->errorResponse(
+                 'Categoría no encontrada',
+                 404
+             );
+         }
+     }
+
     
     
     
