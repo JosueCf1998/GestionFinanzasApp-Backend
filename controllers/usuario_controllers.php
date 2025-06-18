@@ -16,36 +16,45 @@ class usuario_controllers extends BaseController
     }
 
     public function crear($f3)
-     {
-         $this->m_user->load(['nombre = ? OR email = ?', $f3->get('POST.nombre'), $f3->get('POST.email')]);
-     
-         if ($this->m_user->loaded() > 0) {
-             $this->errorResponse(
-                 'Ya existe un Usuario con el nombre o correo que intenta registrar',
-                 409, // Código HTTP para conflicto
-                 ['id' => 0]
-             );
-             return;
-         }
-     
-         $this->m_user->set('nombre', $f3->get('POST.nombre'));
-         $this->m_user->set('apellidos', $f3->get('POST.apellidos'));
-         $this->m_user->set('email', $f3->get('POST.email'));
-     
-         $password_hash = password_hash($f3->get('POST.password'), PASSWORD_DEFAULT);
-         $this->m_user->set('password', $password_hash);
-     
-         $this->m_user->set('fecha_registro', date('Y-m-d H:i:s'));
-     
-         if ($this->m_user->save()) {
-             $this->successResponse([
-                 'mensaje' => 'Usuario creado correctamente',
-                 'info' => ['id' => $this->m_user->get('id')]
-             ]);
-         } else {
-             $this->errorResponse('No se pudo crear el usuario', 500);
-         }
-     }
+    {
+        
+        $body = json_decode($f3->get('BODY'), true);
+    
+        // Validar existencia por nombre o email
+        $this->m_user->load(['nombre = ? OR email = ?', $body['nombre'], $body['email']]);
+    
+        if ($this->m_user->loaded() > 0) {
+            $this->errorResponse(
+                'Ya existe un Usuario con el nombre o correo que intenta registrar',
+                409, // Código HTTP para conflicto
+                ['id' => 0]
+            );
+            return;
+        }
+    
+        // Asignar valores del JSON al modelo
+        $this->m_user->set('nombre', $body['nombre']);
+        $this->m_user->set('apellidos', $body['apellidos']);
+        $this->m_user->set('email', $body['email']);
+    
+        // Encriptar contraseña
+        $password_hash = password_hash($body['password'], PASSWORD_DEFAULT);
+        $this->m_user->set('password', $password_hash);
+    
+        // Establecer fecha actual
+        $this->m_user->set('fecha_registro', date('Y-m-d H:i:s'));
+    
+        // Guardar usuario
+        if ($this->m_user->save()) {
+            $this->successResponse([
+                'mensaje' => 'Usuario creado correctamente',
+                'info' => ['id' => $this->m_user->get('id')]
+            ]);
+        } else {
+            $this->errorResponse('No se pudo crear el usuario', 500);
+        }
+    }
+
 
 
     public function login($f3)
@@ -152,40 +161,42 @@ class usuario_controllers extends BaseController
          $user_id = $f3->get('PARAMS.user_id');
          $this->m_user->load(['id = ?', $user_id]);
      
-         if ($this->m_user->loaded() > 0) {
-             $_user = new m_usuarios();
-             $_user->load(['email = ? AND id <> ?', $f3->get('POST.email'), $user_id]);
-     
-             if ($_user->loaded() > 0) {
-                 $this->errorResponse(
-                     'El correo ya está en uso por otro usuario',
-                     409
-                 );
-             } else {
-                 $this->m_user->set('nombre', $f3->get('POST.nombre'));
-                 $this->m_user->set('apellidos', $f3->get('POST.apellidos'));
-                 $this->m_user->set('email', $f3->get('POST.email'));
-     
-                 $password = $f3->get('POST.password');
-                 if (!empty($password)) {
-                     $password_hash = password_hash($password, PASSWORD_DEFAULT);
-                     $this->m_user->set('password', $password_hash);
-                 }
-     
-                 $this->m_user->save();
-     
-                 $this->successResponse([
-                     'mensaje' => 'Usuario actualizado',
-                     'info' => ['id' => $this->m_user->get('id')]
-                 ]);
-             }
-         } else {
-             $this->errorResponse(
-                 'Usuario no encontrado',
-                 404
-             );
+         if (!$this->m_user->loaded()) {
+             $this->errorResponse('Usuario no encontrado', 404);
+             return;
          }
+     
+         // Leer cuerpo como JSON
+         $body = json_decode($f3->get('BODY'), true);
+     
+         // Verificar si otro usuario tiene el mismo nombre o email
+         $_user = new m_usuarios();
+         $_user->load(['(nombre = ? OR email = ?) AND id != ?', $body['nombre'], $body['email'], $user_id]);
+     
+         if ($_user->loaded()) {
+             $this->errorResponse('El correo o nombre ya está en uso por otro usuario', 409);
+             return;
+         }
+     
+         // Asignar datos nuevos
+         $this->m_user->set('nombre', $body['nombre']);
+         $this->m_user->set('apellidos', $body['apellidos']);
+         $this->m_user->set('email', $body['email']);
+     
+         // Si viene contraseña, actualizarla
+         if (!empty($body['password'])) {
+             $password_hash = password_hash($body['password'], PASSWORD_DEFAULT);
+             $this->m_user->set('password', $password_hash);
+         }
+     
+         $this->m_user->save();
+     
+         $this->successResponse([
+             'mensaje' => 'Usuario actualizado',
+             'info' => ['id' => $this->m_user->get('id')]
+         ]);
      }
+
 
 
     public function listado($f3)

@@ -17,12 +17,13 @@ class categoria_controllers extends BaseController
 
     public function crear($f3)
      {
-         // $this->validarToken($f3); // Descomenta si estás usando validación por token
-     
-         $this->m_categoria->set('nombre', $f3->get('POST.nombre'));
-         $this->m_categoria->set('tipo', $f3->get('POST.tipo'));
-         $this->m_categoria->set('icono', $f3->get('POST.icono'));
-         $this->m_categoria->set('color', $f3->get('POST.color'));
+         // $this->validarToken($f3); 
+        $body = json_decode($f3->get('BODY'), true);
+
+        $this->m_categoria->set('nombre', $body['nombre']);
+        $this->m_categoria->set('tipo', $body['tipo']);
+        $this->m_categoria->set('icono', $body['icono']);
+        $this->m_categoria->set('color', $body['color']);
      
          if ($this->m_categoria->save()) {
              $this->successResponse([
@@ -51,11 +52,11 @@ class categoria_controllers extends BaseController
                      409
                  );
              } else {
-                 $this->m_categoria->set('nombre', $f3->get('POST.nombre'));
-                 $this->m_categoria->set('tipo', $f3->get('POST.tipo'));
-                 $this->m_categoria->set('icono', $f3->get('POST.icono'));
-                 $this->m_categoria->set('color', $f3->get('POST.color'));
-                 $this->m_categoria->save();
+                 $body = json_decode($f3->get('BODY'), true);
+                 $this->m_categoria->set('nombre', $body['nombre']);
+                 $this->m_categoria->set('tipo', $body['tipo']);
+                 $this->m_categoria->set('icono', $body['icono']);
+                 $this->m_categoria->set('color', $body['color']);
      
                  $this->successResponse([
                      'mensaje' => 'Categoría actualizada',
