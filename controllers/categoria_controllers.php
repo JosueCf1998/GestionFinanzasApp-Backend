@@ -38,38 +38,45 @@ class categoria_controllers extends BaseController
      }
 
     public function actualizar($f3)
-     {
-         $categoria_id = $f3->get('PARAMS.categoria_id');
-         $this->m_categoria->load(['id = ?', $categoria_id]);
-     
-         if ($this->m_categoria->loaded() > 0) {
-             $_categoria = new m_categorias();
-             $_categoria->load(['nombre = ? AND id <> ?', $f3->get('POST.nombre'), $categoria_id]);
-     
-             if ($_categoria->loaded() > 0) {
-                 $this->errorResponse(
-                     'Registro no se pudo modificar debido a que el nombre se encuentra en uso por otra categoría',
-                     409
-                 );
-             } else {
-                 $body = json_decode($f3->get('BODY'), true);
-                 $this->m_categoria->set('nombre', $body['nombre']);
-                 $this->m_categoria->set('tipo', $body['tipo']);
-                 $this->m_categoria->set('icono', $body['icono']);
-                 $this->m_categoria->set('color', $body['color']);
-     
-                 $this->successResponse([
-                     'mensaje' => 'Categoría actualizada',
-                     'info' => ['id' => $this->m_categoria->get('id')]
-                 ]);
-             }
-         } else {
-             $this->errorResponse(
-                 'Categoría no encontrada',
-                 404
-             );
-         }
-     }
+    {
+        $categoria_id = $f3->get('PARAMS.categoria_id');
+        $this->m_categoria->load(['id = ?', $categoria_id]);
+    
+        if (!$this->m_categoria->loaded()) {
+            $this->errorResponse('Categoría no encontrada', 404);
+            return;
+        }
+    
+        
+        $body = json_decode($f3->get('BODY'), true);
+    
+        
+        $_categoria = new m_categorias();
+        $_categoria->load(['nombre = ? AND id <> ?', $body['nombre'], $categoria_id]);
+    
+        if ($_categoria->loaded()) {
+            $this->errorResponse(
+                'Registro no se pudo modificar debido a que el nombre se encuentra en uso por otra categoría',
+                409
+            );
+            return;
+        }
+    
+        
+        $this->m_categoria->set('nombre', $body['nombre']);
+        $this->m_categoria->set('tipo', $body['tipo']);
+        $this->m_categoria->set('icono', $body['icono']);
+        $this->m_categoria->set('color', $body['color']);
+    
+        
+        $this->m_categoria->save();
+    
+        $this->successResponse([
+            'mensaje' => 'Categoría actualizada',
+            'info' => ['id' => $this->m_categoria->get('id')]
+        ]);
+    }
+
 
     public function consultar($f3)
      {
