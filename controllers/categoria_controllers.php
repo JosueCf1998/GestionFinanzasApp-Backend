@@ -120,7 +120,11 @@ class categoria_controllers extends BaseController
 
     public function eliminar($f3)
      {
-         $categoria_id = $f3->get('POST.categoria_id');
+         
+         $body = json_decode($f3->get('BODY'), true);
+         $categoria_id = $body['categoria_id'];
+     
+         
          $this->m_categoria->load(['id = ?', $categoria_id]);
      
          if ($this->m_categoria->loaded() > 0) {
@@ -130,12 +134,10 @@ class categoria_controllers extends BaseController
                  'info' => ['id' => $categoria_id]
              ]);
          } else {
-             $this->errorResponse(
-                 'Categoría no encontrada',
-                 404
-             );
+             $this->errorResponse('Categoría no encontrada', 404);
          }
      }
+
 
     
     
