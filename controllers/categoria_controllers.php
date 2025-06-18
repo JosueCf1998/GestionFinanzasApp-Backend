@@ -21,6 +21,8 @@ class categoria_controllers extends BaseController
      
          $this->m_categoria->set('nombre', $f3->get('POST.nombre'));
          $this->m_categoria->set('tipo', $f3->get('POST.tipo'));
+         $this->m_categoria->set('icono', $f3->get('POST.icono'));
+         $this->m_categoria->set('color', $f3->get('POST.color'));
      
          if ($this->m_categoria->save()) {
              $this->successResponse([
@@ -51,6 +53,8 @@ class categoria_controllers extends BaseController
              } else {
                  $this->m_categoria->set('nombre', $f3->get('POST.nombre'));
                  $this->m_categoria->set('tipo', $f3->get('POST.tipo'));
+                 $this->m_categoria->set('icono', $f3->get('POST.icono'));
+                 $this->m_categoria->set('color', $f3->get('POST.color'));
                  $this->m_categoria->save();
      
                  $this->successResponse([
