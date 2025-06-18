@@ -83,7 +83,7 @@ class categoria_controllers extends BaseController
          $categoria_id = $f3->get('PARAMS.categoria_id');
          $this->m_categoria->load(['id = ?', $categoria_id]);
      
-         if ($this->m_categoria->loaded() > 0) {
+         if ($this->m_categoria->loaded()) {
              $this->successResponse([
                  'mensaje' => 'Categoría encontrada',
                  'info' => [
@@ -98,6 +98,7 @@ class categoria_controllers extends BaseController
              );
          }
      }
+
 
     // private function validarToken($f3)
     // {
