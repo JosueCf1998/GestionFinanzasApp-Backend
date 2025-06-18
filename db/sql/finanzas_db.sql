@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 18-06-2025 a las 06:52:56
+-- Tiempo de generación: 18-06-2025 a las 07:48:38
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -30,24 +30,27 @@ SET time_zone = "+00:00";
 CREATE TABLE `categorias` (
   `id` int(11) NOT NULL,
   `nombre` varchar(100) NOT NULL,
-  `tipo` varchar(50) DEFAULT NULL
+  `tipo` varchar(50) DEFAULT NULL,
+  `icono` varchar(100) DEFAULT NULL,
+  `color` varchar(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Volcado de datos para la tabla `categorias`
 --
 
-INSERT INTO `categorias` (`id`, `nombre`, `tipo`) VALUES
-(4, 'Servicios Basicos', 'ingreso'),
-(5, 'Regalo', 'ingreso'),
-(6, 'servios', 'gasto'),
-(7, 'Universidad', 'ingreso'),
-(8, 'Alimentos', 'gastos'),
-(9, 'Paseo', 'gastos'),
-(10, 'Viajes', 'gastos'),
-(11, 'Educacion', 'ingreso'),
-(12, 'Movilidad', 'gasto'),
-(19, 'Ropa', 'gasto');
+INSERT INTO `categorias` (`id`, `nombre`, `tipo`, `icono`, `color`) VALUES
+(20, 'Salud', 'gasto', 'heart', '#c62828'),
+(21, 'Educación', 'gasto', 'study', '#388e3c'),
+(22, 'Alquiler', 'gasto', 'wallet', '#222'),
+(23, 'Regalo', 'gasto', 'gift', '#1976d2'),
+(24, 'Transporte', 'gasto', 'bus', '#fbc02d'),
+(25, 'Comida', 'gasto', 'restaurant', '#ad1457'),
+(26, 'Otros', 'gasto', 'question', '#616161'),
+(27, 'Salario', 'ingreso', 'salary', '#1976d2'),
+(28, 'Regalo', 'ingreso', 'gift', '#ad1457'),
+(29, 'Interés', 'ingreso', 'bank', '#388e3c'),
+(30, 'Otros', 'ingreso', 'question', '#616161');
 
 -- --------------------------------------------------------
 
@@ -86,14 +89,6 @@ CREATE TABLE `transacciones` (
   `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp(),
   `descripcion` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Volcado de datos para la tabla `transacciones`
---
-
-INSERT INTO `transacciones` (`id`, `categoria_id`, `cuenta_id`, `monto`, `tipo`, `fecha_registro`, `descripcion`) VALUES
-(3, 4, 5, 120.00, 'ingreso', '2025-06-18 04:31:45', 'pago de agua'),
-(5, 7, 5, 530.00, 'gasto', '0000-00-00 00:00:00', 'mensualidad semestral');
 
 -- --------------------------------------------------------
 
@@ -190,7 +185,7 @@ ALTER TABLE `usuarios`
 -- AUTO_INCREMENT de la tabla `categorias`
 --
 ALTER TABLE `categorias`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
 
 --
 -- AUTO_INCREMENT de la tabla `cuentas`
