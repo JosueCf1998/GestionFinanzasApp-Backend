@@ -59,13 +59,17 @@ class usuario_controllers extends BaseController
 
     public function login($f3)
      {
-         $email = $f3->get('POST.email');
-         $password = $f3->get('POST.password');
+         // Leer el cuerpo JSON
+         $body = json_decode($f3->get('BODY'), true);
      
+         $email = $body['email'] ?? null;
+         $password = $body['password'] ?? null;
+     
+         // Buscar usuario por email
          $this->m_user->load(['email = ?', $email]);
      
-         if ($this->m_user->loaded() > 0 && password_verify($password, $this->m_user->password)) {
-             // Aquí podrías generar el token JWT si lo deseas
+         if ($this->m_user->loaded() && password_verify($password, $this->m_user->password)) {
+             // Aquí podrías generar el token JWT si deseas usarlo
              // $payload = [
              //     'iat' => time(),
              //     'exp' => time() + (60 * 60), // 1 hora
@@ -78,13 +82,14 @@ class usuario_controllers extends BaseController
      
              $this->successResponse([
                  'mensaje' => 'Login exitoso',
-                 // 'token' => $token, // descomenta cuando uses JWT
+                 // 'token' => $token,
                  'info' => $this->m_user->cast()
              ]);
          } else {
              $this->errorResponse('Credenciales incorrectas', 401, ['info' => []]);
          }
      }
+
 
 
     // private function validarToken($f3)
