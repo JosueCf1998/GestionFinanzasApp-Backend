@@ -10,24 +10,30 @@ class cuentas_controllers extends BaseController
         $this->m_cuenta = new m_cuentas();
     }
     public function crear($f3)
-     {
-         // $this->validarToken($f3); // Descomenta si estás usando autenticación
-     
-         $this->m_cuenta->set('usuario_id', $f3->get('POST.usuario_id'));
-         $this->m_cuenta->set('nombre', $f3->get('POST.nombre'));
-         $this->m_cuenta->set('saldo', $f3->get('POST.saldo'));
-     
-         if ($this->m_cuenta->save()) {
-             $this->successResponse([
-                 'mensaje' => 'Cuenta creada correctamente',
-                 'info' => [
-                     'id' => $this->m_cuenta->get('id')
-                 ]
-             ]);
-         } else {
-             $this->errorResponse('No se pudo crear la cuenta', 500);
-         }
-     }
+      {
+          // $this->validarToken($f3); // Descomenta si estás usando autenticación
+      
+          // Leer cuerpo JSON
+          $body = json_decode($f3->get('BODY'), true);
+      
+          // Asignar valores al modelo
+          $this->m_cuenta->set('usuario_id', $body['usuario_id']);
+          $this->m_cuenta->set('nombre', $body['nombre']);
+          $this->m_cuenta->set('saldo', $body['saldo']);
+      
+          // Guardar y responder
+          if ($this->m_cuenta->save()) {
+              $this->successResponse([
+                  'mensaje' => 'Cuenta creada correctamente',
+                  'info' => [
+                      'id' => $this->m_cuenta->get('id')
+                  ]
+              ]);
+          } else {
+              $this->errorResponse('No se pudo crear la cuenta', 500);
+          }
+      }
+
     // private function validarToken($f3)
     // {
     //     $headers = getallheaders();
@@ -55,37 +61,42 @@ class cuentas_controllers extends BaseController
     // }
 
     public function actualizar($f3)
-     {
-         $cuenta_id = $f3->get('PARAMS.cuenta_id');
-         $this->m_cuenta->load(['id = ?', $cuenta_id]);
-     
-         if ($this->m_cuenta->loaded() > 0) {
-             $_cuenta = new m_cuentas();
-             $_cuenta->load(['nombre = ? AND id <> ?', $f3->get('POST.nombre'), $cuenta_id]);
-     
-             if ($_cuenta->loaded() > 0) {
-                 $this->errorResponse(
-                     'Registro no se pudo modificar debido a que el nombre se encuentra en uso por otra cuenta',
-                     409
-                 );
-             } else {
-                 $this->m_cuenta->set('usuario_id', $f3->get('POST.usuario_id'));
-                 $this->m_cuenta->set('nombre', $f3->get('POST.nombre'));
-                 $this->m_cuenta->set('saldo', $f3->get('POST.saldo'));
-                 $this->m_cuenta->save();
-     
-                 $this->successResponse([
-                     'mensaje' => 'Cuenta actualizada',
-                     'info' => ['id' => $this->m_cuenta->get('id')]
-                 ]);
-             }
-         } else {
-             $this->errorResponse(
-                 'Cuenta no encontrada',
-                 404
-             );
-         }
-     }
+      {
+          $cuenta_id = $f3->get('PARAMS.cuenta_id');
+          $this->m_cuenta->load(['id = ?', $cuenta_id]);
+      
+          if (!$this->m_cuenta->loaded()) {
+              $this->errorResponse('Cuenta no encontrada', 404);
+              return;
+          }
+      
+          // Leer cuerpo como JSON
+          $body = json_decode($f3->get('BODY'), true);
+      
+          // Verificar si hay otra cuenta con el mismo nombre
+          $_cuenta = new m_cuentas();
+          $_cuenta->load(['nombre = ? AND id <> ?', $body['nombre'], $cuenta_id]);
+      
+          if ($_cuenta->loaded()) {
+              $this->errorResponse(
+                  'Registro no se pudo modificar debido a que el nombre se encuentra en uso por otra cuenta',
+                  409
+              );
+              return;
+          }
+      
+          // Actualizar datos
+          $this->m_cuenta->set('usuario_id', $body['usuario_id']);
+          $this->m_cuenta->set('nombre', $body['nombre']);
+          $this->m_cuenta->set('saldo', $body['saldo']);
+          $this->m_cuenta->save();
+      
+          $this->successResponse([
+              'mensaje' => 'Cuenta actualizada',
+              'info' => ['id' => $this->m_cuenta->get('id')]
+          ]);
+      }
+
 
 
     public function consultar($f3)
@@ -110,23 +121,25 @@ class cuentas_controllers extends BaseController
      }
 
     public function eliminar($f3)
-     {
-         $cuenta_id = $f3->get('POST.cuenta_id');
-         $this->m_cuenta->load(['id = ?', $cuenta_id]);
-     
-         if ($this->m_cuenta->loaded() > 0) {
-             $this->m_cuenta->erase();
-             $this->successResponse([
-                 'mensaje' => 'Cuenta eliminada',
-                 'info' => ['id' => $cuenta_id]
-             ]);
-         } else {
-             $this->errorResponse(
-                 'Cuenta no encontrada',
-                 404
-             );
-         }
-     }
+      {
+          // Leer cuerpo como JSON
+          $body = json_decode($f3->get('BODY'), true);
+          $cuenta_id = $body['cuenta_id'];
+      
+          // Buscar la cuenta
+          $this->m_cuenta->load(['id = ?', $cuenta_id]);
+      
+          if ($this->m_cuenta->loaded()) {
+              $this->m_cuenta->erase();
+              $this->successResponse([
+                  'mensaje' => 'Cuenta eliminada',
+                  'info' => ['id' => $cuenta_id]
+              ]);
+          } else {
+              $this->errorResponse('Cuenta no encontrada', 404);
+          }
+      }
+
 
     public function listado($f3)
     {

@@ -9,28 +9,35 @@ class transacciones_controllers extends BaseController
     {
         $this->m_transaccion = new m_transacciones();
     }
+    
     public function crear($f3)
-     {
-         // $this->validarToken($f3); // Descomenta si estás usando autenticación
-     
-         $this->m_transaccion->set('categoria_id', $f3->get('POST.categoria_id'));
-         $this->m_transaccion->set('cuenta_id', $f3->get('POST.cuenta_id'));
-         $this->m_transaccion->set('monto', $f3->get('POST.monto'));
-         $this->m_transaccion->set('tipo', $f3->get('POST.tipo'));
-         $this->m_transaccion->set('descripcion', $f3->get('POST.descripcion'));
-         $this->m_transaccion->set('fecha_registro', $f3->get('POST.fecha_registro'));
-     
-         if ($this->m_transaccion->save()) {
-             $this->successResponse([
-                 'mensaje' => 'Transacción creada correctamente',
-                 'info' => [
-                     'id' => $this->m_transaccion->get('id')
-                 ]
-             ]);
-         } else {
-             $this->errorResponse('No se pudo crear la transacción', 500);
-         }
-     }
+      {
+          // $this->validarToken($f3); // Descomenta si estás usando autenticación
+      
+          // Leer cuerpo como JSON
+          $body = json_decode($f3->get('BODY'), true);
+      
+          // Asignar los valores al modelo
+          $this->m_transaccion->set('categoria_id', $body['categoria_id']);
+          $this->m_transaccion->set('cuenta_id', $body['cuenta_id']);
+          $this->m_transaccion->set('monto', $body['monto']);
+          $this->m_transaccion->set('tipo', $body['tipo']);
+          $this->m_transaccion->set('descripcion', $body['descripcion']);
+          $this->m_transaccion->set('fecha_registro', $body['fecha_registro']);
+      
+          // Guardar y responder
+          if ($this->m_transaccion->save()) {
+              $this->successResponse([
+                  'mensaje' => 'Transacción creada correctamente',
+                  'info' => [
+                      'id' => $this->m_transaccion->get('id')
+                  ]
+              ]);
+          } else {
+              $this->errorResponse('No se pudo crear la transacción', 500);
+          }
+      }
+      
 
     // private function validarToken($f3)
     // {
@@ -59,40 +66,47 @@ class transacciones_controllers extends BaseController
     // }
 
     public function actualizar($f3)
-     {
-         $transac_id = $f3->get('PARAMS.transac_id');
-         $this->m_transaccion->load(['id = ?', $transac_id]);
-     
-         if ($this->m_transaccion->loaded() > 0) {
-             $_transac = new m_transacciones();
-             $_transac->load(['tipo = ? AND id <> ?', $f3->get('POST.tipo'), $transac_id]);
-     
-             if ($_transac->loaded() > 0) {
-                 $this->errorResponse(
-                     'Registro no se pudo modificar debido a que el tipo se encuentra en uso por otra transacción',
-                     409
-                 );
-             } else {
-                 $this->m_transaccion->set('categoria_id', $f3->get('POST.categoria_id'));
-                 $this->m_transaccion->set('cuenta_id', $f3->get('POST.cuenta_id'));
-                 $this->m_transaccion->set('monto', $f3->get('POST.monto'));
-                 $this->m_transaccion->set('tipo', $f3->get('POST.tipo'));
-                 $this->m_transaccion->set('descripcion', $f3->get('POST.descripcion'));
-                 $this->m_transaccion->set('fecha_registro', $f3->get('POST.fecha_registro'));
-                 $this->m_transaccion->save();
-     
-                 $this->successResponse([
-                     'mensaje' => 'Transacción actualizada',
-                     'info' => ['id' => $this->m_transaccion->get('id')]
-                 ]);
-             }
-         } else {
-             $this->errorResponse(
-                 'Transacción no encontrada',
-                 404
-             );
-         }
-     }
+      {
+          $transac_id = $f3->get('PARAMS.transac_id');
+          $this->m_transaccion->load(['id = ?', $transac_id]);
+      
+          if (!$this->m_transaccion->loaded()) {
+              $this->errorResponse('Transacción no encontrada', 404);
+              return;
+          }
+      
+          // Leer cuerpo como JSON
+          $body = json_decode($f3->get('BODY'), true);
+      
+          // Validar si existe otra transacción con el mismo tipo
+          $_transac = new m_transacciones();
+          $_transac->load(['tipo = ? AND id <> ?', $body['tipo'], $transac_id]);
+      
+          if ($_transac->loaded()) {
+              $this->errorResponse(
+                  'Registro no se pudo modificar debido a que el tipo se encuentra en uso por otra transacción',
+                  409
+              );
+              return;
+          }
+      
+          // Asignar nuevos valores
+          $this->m_transaccion->set('categoria_id', $body['categoria_id']);
+          $this->m_transaccion->set('cuenta_id', $body['cuenta_id']);
+          $this->m_transaccion->set('monto', $body['monto']);
+          $this->m_transaccion->set('tipo', $body['tipo']);
+          $this->m_transaccion->set('descripcion', $body['descripcion']);
+          $this->m_transaccion->set('fecha_registro', $body['fecha_registro']);
+      
+          // Guardar cambios
+          $this->m_transaccion->save();
+      
+          $this->successResponse([
+              'mensaje' => 'Transacción actualizada',
+              'info' => ['id' => $this->m_transaccion->get('id')]
+          ]);
+      }
+
 
 
     public function consultar($f3)
@@ -117,23 +131,25 @@ class transacciones_controllers extends BaseController
      }
 
     public function eliminar($f3)
-     {
-         $transac_id = $f3->get('POST.transac_id');
-         $this->m_transaccion->load(['id = ?', $transac_id]);
-     
-         if ($this->m_transaccion->loaded() > 0) {
-             $this->m_transaccion->erase();
-             $this->successResponse([
-                 'mensaje' => 'Transacción eliminada',
-                 'info' => ['id' => $transac_id]
-             ]);
-         } else {
-             $this->errorResponse(
-                 'Transacción no encontrada',
-                 404
-             );
-         }
-     }
+      {
+          // Leer cuerpo como JSON
+          $body = json_decode($f3->get('BODY'), true);
+          $transac_id = $body['transac_id'];
+      
+          // Buscar la transacción por ID
+          $this->m_transaccion->load(['id = ?', $transac_id]);
+      
+          if ($this->m_transaccion->loaded()) {
+              $this->m_transaccion->erase();
+              $this->successResponse([
+                  'mensaje' => 'Transacción eliminada',
+                  'info' => ['id' => $transac_id]
+              ]);
+          } else {
+              $this->errorResponse('Transacción no encontrada', 404);
+          }
+      }
+
 
     public function listado($f3)
     {

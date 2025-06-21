@@ -143,22 +143,25 @@ class usuario_controllers extends BaseController
 
     public function eliminar($f3)
      {
-         $user_id = $f3->get('POST.user_id');
+         // Leer cuerpo JSON
+         $body = json_decode($f3->get('BODY'), true);
+         $user_id = $body['user_id'];
+     
+         // Cargar el usuario por ID
          $this->m_user->load(['id = ?', $user_id]);
      
-         if ($this->m_user->loaded() > 0) {
+         if ($this->m_user->loaded()) {
              $this->m_user->erase();
+     
              $this->successResponse([
                  'mensaje' => 'Usuario eliminado',
                  'info' => ['id' => $user_id]
              ]);
          } else {
-             $this->errorResponse(
-                 'Usuario no encontrado',
-                 404
-             );
+             $this->errorResponse('Usuario no encontrado', 404);
          }
      }
+
 
 
     public function actualizar($f3)
@@ -183,12 +186,12 @@ class usuario_controllers extends BaseController
              return;
          }
      
-         // Asignar datos nuevos
+         
          $this->m_user->set('nombre', $body['nombre']);
          $this->m_user->set('apellidos', $body['apellidos']);
          $this->m_user->set('email', $body['email']);
      
-         // Si viene contraseña, actualizarla
+       
          if (!empty($body['password'])) {
              $password_hash = password_hash($body['password'], PASSWORD_DEFAULT);
              $this->m_user->set('password', $password_hash);
