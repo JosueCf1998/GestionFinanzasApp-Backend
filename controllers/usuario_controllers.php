@@ -89,7 +89,6 @@ class usuario_controllers extends BaseController
                 ];
                 $token = JWT::encode($payload, $this->jwt_key, 'HS256');
                 
-                // Guardar sesión en base de datos
                 $db = \Base::instance()->get('DB');
                 $db->exec("SET time_zone = '-05:00'");
                 date_default_timezone_set('America/Lima');
@@ -125,12 +124,12 @@ class usuario_controllers extends BaseController
          $headers = getallheaders();
          $token = null;
      
-         // Verifica si viene en Header: Authorization: Bearer <token>
+         
          if (isset($headers['Authorization']) && preg_match('/Bearer\s(\S+)/', $headers['Authorization'], $matches)) {
              $token = $matches[1];
          }
      
-         // Si no está en headers, intenta leer del body JSON
+        
          if (!$token) {
              $body = json_decode($f3->get('BODY'), true);
              $token = $body['token'] ?? null;
@@ -143,11 +142,11 @@ class usuario_controllers extends BaseController
          }
      
          try {
-             // Decodifica el token
+             
              $decoded = JWT::decode($token, new Key($this->jwt_key, 'HS256'));
              $user_id = $decoded->data->user_id;
      
-             // Buscar sesión en base de datos
+            
              $db = \Base::instance()->get('DB');
              $db->exec("SET time_zone = '-05:00'");
              $sesion = $db->exec("SELECT * FROM sesiones WHERE user_id = ? AND token = ?", [$user_id, $token]);
@@ -172,12 +171,12 @@ class usuario_controllers extends BaseController
                  exit;
              }
      
-             // Actualiza último uso
+             
              $ahora = date('Y-m-d H:i:s');
              $db->exec("UPDATE sesiones SET ultimo_uso = ? WHERE user_id = ? AND token = ?", [$ahora, $user_id, $token]);
 
      
-             // Puedes usar el ID del usuario en otras partes
+            
              $f3->set('user_id', $user_id);
      
          } catch (Exception $e) {
@@ -190,7 +189,7 @@ class usuario_controllers extends BaseController
 
       public function perfilProtegido($f3)
        {
-           $this->validarToken($f3); // 🔒 Asegura que el token sea válido
+           $this->validarToken($f3); 
        
            $user_id = $f3->get('user_id'); // Obtenido desde el token
            $this->m_user->load(['id = ?', $user_id]);
