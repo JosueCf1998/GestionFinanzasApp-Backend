@@ -9,9 +9,9 @@ class usuario_controllers extends BaseController
 {
     public $m_user = null;
     private $jwt_key = "$#Gre1410#$"; 
-    private $secret_key = '$#Gre1410'; // Cambia esto por una segura
-    private $cipher = 'AES-256-CBC'; // Método de cifrado
-    private $iv = '1234567890123456'; // Vector de inicialización (16 caracteres)
+    private $secret_key = '$#Gre1410'; 
+    private $cipher = 'AES-256-CBC'; 
+    private $iv = '1234567890123456'; 
 
 
     public function __construct()
@@ -91,7 +91,7 @@ class usuario_controllers extends BaseController
       
               $this->successResponse([
                   'mensaje' => 'Login exitoso',
-                  // 'token' => $token, // descomenta si usas JWT
+                  // 'token' => $token, 
                   'info' => $info
               ]);
           } else {
@@ -158,11 +158,9 @@ class usuario_controllers extends BaseController
 
     public function eliminar($f3)
      {
-         // Leer cuerpo JSON
          $body = json_decode($f3->get('BODY'), true);
          $user_id = $body['user_id'];
      
-         // Cargar el usuario por ID
          $this->m_user->load(['id = ?', $user_id]);
      
          if ($this->m_user->loaded()) {
@@ -189,10 +187,8 @@ class usuario_controllers extends BaseController
               return;
           }
       
-          // Leer cuerpo como JSON
           $body = json_decode($f3->get('BODY'), true);
       
-          // Actualizar nombre y apellidos si se envían
           if (!empty($body['nombre'])) {
               $this->m_user->set('nombre', $body['nombre']);
           }
@@ -201,26 +197,22 @@ class usuario_controllers extends BaseController
               $this->m_user->set('apellidos', $body['apellidos']);
           }
       
-          // Encriptar y guardar email si se envía
           if (!empty($body['email'])) {
               $email_encriptado = openssl_encrypt($body['email'], $this->cipher, $this->secret_key, 0, $this->iv);
               $this->m_user->set('email', $email_encriptado);
           }
-      
-          // Verificar si se quiere actualizar la contraseña
+          
           if (!empty($body['password'])) {
-              // Verificar que no sea igual a la actual
               if (password_verify($body['password'], $this->m_user->password)) {
                   $this->errorResponse('La nueva contraseña no puede ser igual a la anterior', 400);
                   return;
               }
       
-              // Hashear y guardar
               $password_hash = password_hash($body['password'], PASSWORD_DEFAULT);
               $this->m_user->set('password', $password_hash);
           }
       
-          // Guardar cambios
+
           $this->m_user->save();
       
           $this->successResponse([
