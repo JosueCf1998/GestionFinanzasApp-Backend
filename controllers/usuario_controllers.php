@@ -25,7 +25,7 @@ class usuario_controllers extends BaseController
         $body = json_decode($f3->get('BODY'), true);
         $email_encriptado = openssl_encrypt($body['email'], $this->cipher, $this->secret_key, 0, $this->iv);
 
-        $this->m_user->load(['nombre = ? OR email = ?', $body['nombre'], $body['email']]);
+        $this->m_user->load(['nombre = ? OR email = ?', $body['nombre'], $email_encriptado]);
     
         if ($this->m_user->loaded() > 0) {
             $this->errorResponse(
@@ -74,24 +74,41 @@ class usuario_controllers extends BaseController
           $this->m_user->load(['email = ?', $email_encriptado]);
       
           if ($this->m_user->loaded() && password_verify($password, $this->m_user->password)) {
-              // Aquí podrías generar el token JWT si deseas usarlo
-              // $payload = [
-              //     'iat' => time(),
-              //     'exp' => time() + (60 * 60), // 1 hora
-              //     'data' => [
-              //         'user_id' => $this->m_user->id,
-              //         'email' => $this->m_user->email
-              //     ]
-              // ];
-              // $token = JWT::encode($payload, $this->jwt_key, 'HS256');
-      
-              $info = $this->m_user->cast();
-      
+              
+               
+                $email_desencriptado = openssl_decrypt($this->m_user->email, $this->cipher, $this->secret_key, 0, $this->iv);
+                
+                
+                $payload = [
+                    'iat' => time(),
+                    'exp' => time() + (3 * 60), // Vida máxima
+                    'data' => [
+                        'user_id' => $this->m_user->id,
+                        'email' => $email_desencriptado
+                    ]
+                ];
+                $token = JWT::encode($payload, $this->jwt_key, 'HS256');
+                
+                // Guardar sesión en base de datos
+                $db = \Base::instance()->get('DB');
+                $db->exec("SET time_zone = '-05:00'");
+                date_default_timezone_set('America/Lima');
+                $ahora = date('Y-m-d H:i:s');
+                            
+                $db->exec(
+                    "INSERT INTO sesiones (user_id, token, ultimo_uso, creado_en) VALUES (?, ?, ?, ?)",
+                    [$this->m_user->id, $token, $ahora, $ahora]
+                );
+
+
+
+            
+              $info = $this->m_user->cast();      
               $info['email'] = openssl_decrypt($info['email'], $this->cipher, $this->secret_key, 0, $this->iv);
       
               $this->successResponse([
                   'mensaje' => 'Login exitoso',
-                  // 'token' => $token, 
+                   'token' => $token, 
                   'info' => $info
               ]);
           } else {
@@ -102,32 +119,95 @@ class usuario_controllers extends BaseController
 
 
 
-    // private function validarToken($f3)
-    // {
-    //     $headers = getallheaders();
-    //     if (!isset($headers['Authorization'])) {
-    //         echo json_encode(['mensaje' => 'Token no proporcionado']);
-    //         http_response_code(401);
-    //         exit;
-    //     }
+    
+    private function validarToken($f3)
+     {
+         $headers = getallheaders();
+         $token = null;
+     
+         // Verifica si viene en Header: Authorization: Bearer <token>
+         if (isset($headers['Authorization']) && preg_match('/Bearer\s(\S+)/', $headers['Authorization'], $matches)) {
+             $token = $matches[1];
+         }
+     
+         // Si no está en headers, intenta leer del body JSON
+         if (!$token) {
+             $body = json_decode($f3->get('BODY'), true);
+             $token = $body['token'] ?? null;
+         }
+     
+         if (!$token) {
+             echo json_encode(['mensaje' => 'Token no proporcionado']);
+             http_response_code(401);
+             exit;
+         }
+     
+         try {
+             // Decodifica el token
+             $decoded = JWT::decode($token, new Key($this->jwt_key, 'HS256'));
+             $user_id = $decoded->data->user_id;
+     
+             // Buscar sesión en base de datos
+             $db = \Base::instance()->get('DB');
+             $db->exec("SET time_zone = '-05:00'");
+             $sesion = $db->exec("SELECT * FROM sesiones WHERE user_id = ? AND token = ?", [$user_id, $token]);
+     
+             if (count($sesion) === 0) {
+                 echo json_encode(['mensaje' => 'Sesión no encontrada']);
+                 http_response_code(401);
+                 exit;
+             }
+                  
+             date_default_timezone_set('America/Lima');
+             $ultimoUso = strtotime($sesion[0]['ultimo_uso']);
+             $ahora = time();
+             date_default_timezone_set('America/Lima');
 
-    //     if (preg_match('/Bearer\s(\S+)/', $headers['Authorization'], $matches)) {
-    //         $token = $matches[1];
-    //         try {
-    //             $decoded = JWT::decode($token, new Key($this->jwt_key, 'HS256'));
-    //             // Puedes pasar el usuario al $f3 si lo deseas
-    //             $f3->set('user_id', $decoded->data->user_id);
-    //         } catch (Exception $e) {
-    //             echo json_encode(['mensaje' => 'Token inválido o expirado']);
-    //             http_response_code(403);
-    //             exit;
-    //         }
-    //     } else {
-    //         echo json_encode(['mensaje' => 'Formato de token inválido']);
-    //         http_response_code(400);
-    //         exit;
-    //     }
-    // }
+     
+             if (($ahora - $ultimoUso) > (3 * 60)) {
+                 // Expirada: eliminar sesión
+                 $db->exec("DELETE FROM sesiones WHERE user_id = ? AND token = ?", [$user_id, $token]);
+                 echo json_encode(['mensaje' => 'Sesión expirada por inactividad']);
+                 http_response_code(401);
+                 exit;
+             }
+     
+             // Actualiza último uso
+             $ahora = date('Y-m-d H:i:s');
+             $db->exec("UPDATE sesiones SET ultimo_uso = ? WHERE user_id = ? AND token = ?", [$ahora, $user_id, $token]);
+
+     
+             // Puedes usar el ID del usuario en otras partes
+             $f3->set('user_id', $user_id);
+     
+         } catch (Exception $e) {
+             echo json_encode(['mensaje' => 'Token inválido o expirado']);
+             http_response_code(403);
+             exit;
+         }
+     }
+
+
+      public function perfilProtegido($f3)
+       {
+           $this->validarToken($f3); // 🔒 Asegura que el token sea válido
+       
+           $user_id = $f3->get('user_id'); // Obtenido desde el token
+           $this->m_user->load(['id = ?', $user_id]);
+       
+           if ($this->m_user->loaded()) {
+               $info = $this->m_user->cast();
+               $info['email'] = openssl_decrypt($info['email'], $this->cipher, $this->secret_key, 0, $this->iv);
+       
+               $this->successResponse([
+                   'mensaje' => 'Acceso autorizado al perfil',
+                   'info' => $info
+               ]);
+           } else {
+               $this->errorResponse('Usuario no encontrado', 404);
+           }
+       }
+
 
     public function consultar($f3)
       {
