@@ -8,7 +8,11 @@ require_once 'BaseController.php';
 class usuario_controllers extends BaseController
 {
     public $m_user = null;
-    private $jwt_key = "$#Gre1410#$"; // Cámbiala por algo seguro
+    private $jwt_key = "$#Gre1410#$"; 
+    private $secret_key = '$#Gre1410'; // Cambia esto por una segura
+    private $cipher = 'AES-256-CBC'; // Método de cifrado
+    private $iv = '1234567890123456'; // Vector de inicialización (16 caracteres)
+
 
     public function __construct()
     {
@@ -19,32 +23,33 @@ class usuario_controllers extends BaseController
     {
         
         $body = json_decode($f3->get('BODY'), true);
-    
-        // Validar existencia por nombre o email
+        $email_encriptado = openssl_encrypt($body['email'], $this->cipher, $this->secret_key, 0, $this->iv);
+
         $this->m_user->load(['nombre = ? OR email = ?', $body['nombre'], $body['email']]);
     
         if ($this->m_user->loaded() > 0) {
             $this->errorResponse(
                 'Ya existe un Usuario con el nombre o correo que intenta registrar',
-                409, // Código HTTP para conflicto
+                409,
                 ['id' => 0]
             );
             return;
         }
     
-        // Asignar valores del JSON al modelo
+        
         $this->m_user->set('nombre', $body['nombre']);
         $this->m_user->set('apellidos', $body['apellidos']);
-        $this->m_user->set('email', $body['email']);
-    
-        // Encriptar contraseña
+        $this->m_user->set('email', $email_encriptado);
+
+            
         $password_hash = password_hash($body['password'], PASSWORD_DEFAULT);
         $this->m_user->set('password', $password_hash);
-    
-        // Establecer fecha actual
+        
+        date_default_timezone_set('America/Lima');
         $this->m_user->set('fecha_registro', date('Y-m-d H:i:s'));
+
     
-        // Guardar usuario
+        
         if ($this->m_user->save()) {
             $this->successResponse([
                 'mensaje' => 'Usuario creado correctamente',
@@ -58,37 +63,42 @@ class usuario_controllers extends BaseController
 
 
     public function login($f3)
-     {
-         // Leer el cuerpo JSON
-         $body = json_decode($f3->get('BODY'), true);
-     
-         $email = $body['email'] ?? null;
-         $password = $body['password'] ?? null;
-     
-         // Buscar usuario por email
-         $this->m_user->load(['email = ?', $email]);
-     
-         if ($this->m_user->loaded() && password_verify($password, $this->m_user->password)) {
-             // Aquí podrías generar el token JWT si deseas usarlo
-             // $payload = [
-             //     'iat' => time(),
-             //     'exp' => time() + (60 * 60), // 1 hora
-             //     'data' => [
-             //         'user_id' => $this->m_user->id,
-             //         'email' => $this->m_user->email
-             //     ]
-             // ];
-             // $token = JWT::encode($payload, $this->jwt_key, 'HS256');
-     
-             $this->successResponse([
-                 'mensaje' => 'Login exitoso',
-                 // 'token' => $token,
-                 'info' => $this->m_user->cast()
-             ]);
-         } else {
-             $this->errorResponse('Credenciales incorrectas', 401, ['info' => []]);
-         }
-     }
+      {
+          $body = json_decode($f3->get('BODY'), true);
+      
+          $email = $body['email'] ?? null;
+          $password = $body['password'] ?? null;
+      
+          $email_encriptado = openssl_encrypt($email, $this->cipher, $this->secret_key, 0, $this->iv);
+      
+          $this->m_user->load(['email = ?', $email_encriptado]);
+      
+          if ($this->m_user->loaded() && password_verify($password, $this->m_user->password)) {
+              // Aquí podrías generar el token JWT si deseas usarlo
+              // $payload = [
+              //     'iat' => time(),
+              //     'exp' => time() + (60 * 60), // 1 hora
+              //     'data' => [
+              //         'user_id' => $this->m_user->id,
+              //         'email' => $this->m_user->email
+              //     ]
+              // ];
+              // $token = JWT::encode($payload, $this->jwt_key, 'HS256');
+      
+              $info = $this->m_user->cast();
+      
+              $info['email'] = openssl_decrypt($info['email'], $this->cipher, $this->secret_key, 0, $this->iv);
+      
+              $this->successResponse([
+                  'mensaje' => 'Login exitoso',
+                  // 'token' => $token, // descomenta si usas JWT
+                  'info' => $info
+              ]);
+          } else {
+              $this->errorResponse('Credenciales incorrectas', 401, ['info' => []]);
+          }
+      }
+
 
 
 
@@ -120,25 +130,30 @@ class usuario_controllers extends BaseController
     // }
 
     public function consultar($f3)
-     {
-         // $this->validarToken($f3); // Descomenta si usas autenticación
-     
-         $user_id = $f3->get('PARAMS.user_id');
-         $this->m_user->load(['id = ?', $user_id]);
-     
-         if ($this->m_user->loaded() > 0) {
-             $this->successResponse([
-                 'mensaje' => 'Usuario encontrado',
-                 'info' => ['items' => $this->m_user->cast()]
-             ]);
-         } else {
-             $this->errorResponse(
-                 'Usuario no encontrado',
-                 404,
-                 ['items' => []]
-             );
-         }
-     }
+      {
+          $user_id = $f3->get('PARAMS.user_id');
+          $this->m_user->load(['id = ?', $user_id]);
+      
+          if ($this->m_user->loaded()) {
+              $data = $this->m_user->cast();
+      
+              
+              $data['email'] = openssl_decrypt($data['email'], $this->cipher, $this->secret_key, 0, $this->iv);
+      
+      
+              $this->successResponse([
+                  'mensaje' => 'Usuario encontrado',
+                  'info' => ['items' => $data]
+              ]);
+          } else {
+              $this->errorResponse(
+                  'Usuario no encontrado',
+                  404,
+                  ['items' => []]
+              );
+          }
+      }
+
 
 
     public function eliminar($f3)
@@ -165,45 +180,55 @@ class usuario_controllers extends BaseController
 
 
     public function actualizar($f3)
-     {
-         $user_id = $f3->get('PARAMS.user_id');
-         $this->m_user->load(['id = ?', $user_id]);
-     
-         if (!$this->m_user->loaded()) {
-             $this->errorResponse('Usuario no encontrado', 404);
-             return;
-         }
-     
-         // Leer cuerpo como JSON
-         $body = json_decode($f3->get('BODY'), true);
-     
-         // Verificar si otro usuario tiene el mismo nombre o email
-         $_user = new m_usuarios();
-         $_user->load(['(nombre = ? OR email = ?) AND id != ?', $body['nombre'], $body['email'], $user_id]);
-     
-         if ($_user->loaded()) {
-             $this->errorResponse('El correo o nombre ya está en uso por otro usuario', 409);
-             return;
-         }
-     
-         
-         $this->m_user->set('nombre', $body['nombre']);
-         $this->m_user->set('apellidos', $body['apellidos']);
-         $this->m_user->set('email', $body['email']);
-     
-       
-         if (!empty($body['password'])) {
-             $password_hash = password_hash($body['password'], PASSWORD_DEFAULT);
-             $this->m_user->set('password', $password_hash);
-         }
-     
-         $this->m_user->save();
-     
-         $this->successResponse([
-             'mensaje' => 'Usuario actualizado',
-             'info' => ['id' => $this->m_user->get('id')]
-         ]);
-     }
+      {
+          $user_id = $f3->get('PARAMS.user_id');
+          $this->m_user->load(['id = ?', $user_id]);
+      
+          if (!$this->m_user->loaded()) {
+              $this->errorResponse('Usuario no encontrado', 404);
+              return;
+          }
+      
+          // Leer cuerpo como JSON
+          $body = json_decode($f3->get('BODY'), true);
+      
+          // Actualizar nombre y apellidos si se envían
+          if (!empty($body['nombre'])) {
+              $this->m_user->set('nombre', $body['nombre']);
+          }
+      
+          if (!empty($body['apellidos'])) {
+              $this->m_user->set('apellidos', $body['apellidos']);
+          }
+      
+          // Encriptar y guardar email si se envía
+          if (!empty($body['email'])) {
+              $email_encriptado = openssl_encrypt($body['email'], $this->cipher, $this->secret_key, 0, $this->iv);
+              $this->m_user->set('email', $email_encriptado);
+          }
+      
+          // Verificar si se quiere actualizar la contraseña
+          if (!empty($body['password'])) {
+              // Verificar que no sea igual a la actual
+              if (password_verify($body['password'], $this->m_user->password)) {
+                  $this->errorResponse('La nueva contraseña no puede ser igual a la anterior', 400);
+                  return;
+              }
+      
+              // Hashear y guardar
+              $password_hash = password_hash($body['password'], PASSWORD_DEFAULT);
+              $this->m_user->set('password', $password_hash);
+          }
+      
+          // Guardar cambios
+          $this->m_user->save();
+      
+          $this->successResponse([
+              'mensaje' => 'Usuario actualizado',
+              'info' => ['id' => $this->m_user->get('id')]
+          ]);
+      }
+
 
 
 
