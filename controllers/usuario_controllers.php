@@ -306,7 +306,7 @@ class usuario_controllers extends BaseController
 
     public function listado($f3)
     {
-        $this->validarToken($f3);
+        //$this->validarToken($f3);
         $result = $this->m_user->find();
         $items = [];
         foreach ($result as $user) {
