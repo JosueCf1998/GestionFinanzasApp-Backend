@@ -81,7 +81,7 @@ class usuario_controllers extends BaseController
                 
                 $payload = [
                     'iat' => time(),
-                    'exp' => time() + (3 * 60), // Vida máxima
+                    'exp' => time() + (5 * 60), // Vida máxima
                     'data' => [
                         'user_id' => $this->m_user->id,
                         'email' => $email_desencriptado
@@ -98,8 +98,6 @@ class usuario_controllers extends BaseController
                     "INSERT INTO sesiones (user_id, token, ultimo_uso, creado_en) VALUES (?, ?, ?, ?)",
                     [$this->m_user->id, $token, $ahora, $ahora]
                 );
-
-
 
             
               $info = $this->m_user->cast();      
@@ -163,8 +161,8 @@ class usuario_controllers extends BaseController
              date_default_timezone_set('America/Lima');
 
      
-             if (($ahora - $ultimoUso) > (3 * 60)) {
-                 // Expirada: eliminar sesión
+             if (($ahora - $ultimoUso) > (5 * 60)) {
+                 
                  $db->exec("DELETE FROM sesiones WHERE user_id = ? AND token = ?", [$user_id, $token]);
                  echo json_encode(['mensaje' => 'Sesión expirada por inactividad']);
                  http_response_code(401);
@@ -191,7 +189,7 @@ class usuario_controllers extends BaseController
        {
            $this->validarToken($f3); 
        
-           $user_id = $f3->get('user_id'); // Obtenido desde el token
+           $user_id = $f3->get('user_id'); 
            $this->m_user->load(['id = ?', $user_id]);
        
            if ($this->m_user->loaded()) {
@@ -237,6 +235,7 @@ class usuario_controllers extends BaseController
 
     public function eliminar($f3)
      {
+         $this->validarToken($f3);
          $body = json_decode($f3->get('BODY'), true);
          $user_id = $body['user_id'];
      
@@ -258,6 +257,8 @@ class usuario_controllers extends BaseController
 
     public function actualizar($f3)
       {
+          $this->validarToken($f3);
+
           $user_id = $f3->get('PARAMS.user_id');
           $this->m_user->load(['id = ?', $user_id]);
       
@@ -305,7 +306,7 @@ class usuario_controllers extends BaseController
 
     public function listado($f3)
     {
-        // $this->validarToken($f3);
+        $this->validarToken($f3);
         $result = $this->m_user->find();
         $items = [];
         foreach ($result as $user) {

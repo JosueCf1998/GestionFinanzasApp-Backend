@@ -12,12 +12,12 @@ class transacciones_controllers extends BaseController
     
     public function crear($f3)
       {
-          // $this->validarToken($f3); // Descomenta si estás usando autenticación
+         $this->validarToken($f3); 
       
-          // Leer cuerpo como JSON
+          
           $body = json_decode($f3->get('BODY'), true);
       
-          // Asignar los valores al modelo
+          
           $this->m_transaccion->set('categoria_id', $body['categoria_id']);
           $this->m_transaccion->set('cuenta_id', $body['cuenta_id']);
           $this->m_transaccion->set('monto', $body['monto']);
@@ -25,7 +25,7 @@ class transacciones_controllers extends BaseController
           $this->m_transaccion->set('descripcion', $body['descripcion']);
           $this->m_transaccion->set('fecha_registro', $body['fecha_registro']);
       
-          // Guardar y responder
+          
           if ($this->m_transaccion->save()) {
               $this->successResponse([
                   'mensaje' => 'Transacción creada correctamente',
@@ -39,31 +39,30 @@ class transacciones_controllers extends BaseController
       }
       
 
-    // private function validarToken($f3)
-    // {
-    //     $headers = getallheaders();
-    //     if (!isset($headers['Authorization'])) {
-    //         echo json_encode(['mensaje' => 'Token no proporcionado']);
-    //         http_response_code(401);
-    //         exit;
-    //     }
-
-    //     if (preg_match('/Bearer\s(\S+)/', $headers['Authorization'], $matches)) {
-    //         $token = $matches[1];
-    //         try {
-    //             $decoded = \Firebase\JWT\JWT::decode($token, new \Firebase\JWT\Key('$#Gre1410#$', 'HS256'));
-    //             $f3->set('user_id', $decoded->data->user_id);
-    //         } catch (Exception $e) {
-    //             echo json_encode(['mensaje' => 'Token inválido o expirado']);
-    //             http_response_code(403);
-    //             exit;
-    //         }
-    //     } else {
-    //         echo json_encode(['mensaje' => 'Formato de token inválido']);
-    //         http_response_code(400);
-    //         exit;
-    //     }
-    // }
+     private function validarToken($f3)
+     {
+         $headers = getallheaders();
+         if (!isset($headers['Authorization'])) {
+             echo json_encode(['mensaje' => 'Token no proporcionado']);
+             http_response_code(401);
+             exit;
+         }
+        if (preg_match('/Bearer\s(\S+)/', $headers['Authorization'], $matches)) {
+             $token = $matches[1];
+             try {
+                 $decoded = \Firebase\JWT\JWT::decode($token, new \Firebase\JWT\Key('$#Gre1410#$', 'HS256'));
+                 $f3->set('user_id', $decoded->data->user_id);
+             } catch (Exception $e) {
+                 echo json_encode(['mensaje' => 'Token inválido o expirado']);
+                 http_response_code(403);
+                 exit;
+             }
+         } else {
+             echo json_encode(['mensaje' => 'Formato de token inválido']);
+             http_response_code(400);
+             exit;
+         }
+     }
 
     public function actualizar($f3)
       {
@@ -75,10 +74,10 @@ class transacciones_controllers extends BaseController
               return;
           }
       
-          // Leer cuerpo como JSON
+          
           $body = json_decode($f3->get('BODY'), true);
       
-          // Validar si existe otra transacción con el mismo tipo
+          
           $_transac = new m_transacciones();
           $_transac->load(['tipo = ? AND id <> ?', $body['tipo'], $transac_id]);
       
@@ -90,7 +89,7 @@ class transacciones_controllers extends BaseController
               return;
           }
       
-          // Asignar nuevos valores
+          
           $this->m_transaccion->set('categoria_id', $body['categoria_id']);
           $this->m_transaccion->set('cuenta_id', $body['cuenta_id']);
           $this->m_transaccion->set('monto', $body['monto']);
@@ -98,7 +97,7 @@ class transacciones_controllers extends BaseController
           $this->m_transaccion->set('descripcion', $body['descripcion']);
           $this->m_transaccion->set('fecha_registro', $body['fecha_registro']);
       
-          // Guardar cambios
+          
           $this->m_transaccion->save();
       
           $this->successResponse([
@@ -132,11 +131,11 @@ class transacciones_controllers extends BaseController
 
     public function eliminar($f3)
       {
-          // Leer cuerpo como JSON
+          $this->validarToken($f3);
           $body = json_decode($f3->get('BODY'), true);
           $transac_id = $body['transac_id'];
       
-          // Buscar la transacción por ID
+          
           $this->m_transaccion->load(['id = ?', $transac_id]);
       
           if ($this->m_transaccion->loaded()) {
@@ -153,6 +152,7 @@ class transacciones_controllers extends BaseController
 
     public function listado($f3)
     {
+        $this->validarToken($f3);
         $result = $this->m_transaccion->find();
         $items = [];
         foreach ($result as $transaccion) {
