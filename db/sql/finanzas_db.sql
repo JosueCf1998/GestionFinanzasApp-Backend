@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 18-06-2025 a las 07:48:38
+-- Tiempo de generación: 23-06-2025 a las 02:26:27
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -50,7 +50,8 @@ INSERT INTO `categorias` (`id`, `nombre`, `tipo`, `icono`, `color`) VALUES
 (27, 'Salario', 'ingreso', 'salary', '#1976d2'),
 (28, 'Regalo', 'ingreso', 'gift', '#ad1457'),
 (29, 'Interés', 'ingreso', 'bank', '#388e3c'),
-(30, 'Otros', 'ingreso', 'question', '#616161');
+(30, 'Otros', 'ingreso', 'question', '#616161'),
+(35, 'goyo', 'gasto', 'bus', '#fbc02d');
 
 -- --------------------------------------------------------
 
@@ -73,6 +74,30 @@ INSERT INTO `cuentas` (`id`, `usuario_id`, `nombre`, `saldo`) VALUES
 (4, 14, 'Interbank', 1200.00),
 (5, 11, 'Scotiabank', 50156.00),
 (6, 13, 'SagaFalabbella', 5026.00);
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `sesiones`
+--
+
+CREATE TABLE `sesiones` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `token` text DEFAULT NULL,
+  `ultimo_uso` datetime DEFAULT NULL,
+  `creado_en` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `sesiones`
+--
+
+INSERT INTO `sesiones` (`id`, `user_id`, `token`, `ultimo_uso`, `creado_en`) VALUES
+(15, 18, 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3NTA2MTk3MTksImV4cCI6MTc1MDYxOTg5OSwiZGF0YSI6eyJ1c2VyX2lkIjoxOCwiZW1haWwiOiJWbWFsZG9uYWRvQGdtYWlsLmNvbSJ9fQ.dlptj-AE3mD1I83e9qMIwpa9-yn00C7yt-vRLryWvJY', '2025-06-22 14:15:19', '2025-06-22 14:15:19'),
+(21, 18, 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3NTA2MzMwMjYsImV4cCI6MTc1MDYzMzIwNiwiZGF0YSI6eyJ1c2VyX2lkIjoxOCwiZW1haWwiOiJWbWFsZG9uYWRvQGdtYWlsLmNvbSJ9fQ.3FSe9seabISBk-Z91oyuxqda_rPZOUjog3MywtE5uVA', '2025-06-23 00:57:06', '2025-06-23 00:57:06'),
+(22, 18, 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3NTA2MzMyMTMsImV4cCI6MTc1MDYzMzM5MywiZGF0YSI6eyJ1c2VyX2lkIjoxOCwiZW1haWwiOiJWbWFsZG9uYWRvQGdtYWlsLmNvbSJ9fQ.K3NXeY6IhKlJLV9g9t_2Gz802YU_bFFRm2kMgYndheI', '2025-06-23 01:00:13', '2025-06-23 01:00:13'),
+(24, 18, 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3NTA2MzM3NTYsImV4cCI6MTc1MDYzMzkzNiwiZGF0YSI6eyJ1c2VyX2lkIjoxOCwiZW1haWwiOiJWbWFsZG9uYWRvQGdtYWlsLmNvbSJ9fQ.HF3hAVk-B8emT4JbL1auUD_OFdA6RUa3CbCUM5y7nyk', '2025-06-22 18:10:04', '2025-06-22 18:09:16');
 
 -- --------------------------------------------------------
 
@@ -136,7 +161,11 @@ INSERT INTO `usuarios` (`id`, `nombre`, `apellidos`, `email`, `password`, `fecha
 (13, 'Ana Maria', 'Tuesta Ayasta', 'amtuestaa@gmail.com', '$2y$10$Cv9Q3G.M8NCXHFRY977iReJmSS6bZqe9mPWu7n89GinS2sgoKVv9K', '2025-04-22 11:36:53'),
 (14, 'Gregori', 'Bonifas', 'grego1410@gmail.com', '$2y$10$0xPvA4YvpBtmAtXf0ZvT..ArLZ8nISJJcJ4U6W0Rel171UjxfmqL2', '2025-04-27 01:17:27'),
 (15, 'karen', 'flores', 'karen@mvf.com', '$2y$10$vpFCa37/O1JBOA0hfRbug.z1N6ei.R6RjliWNPGAe0p9ZwxnV/6ke', '2025-06-14 13:42:45'),
-(16, 'Bella', 'flores', 'bellaN@mvf.com', '$2y$10$6zxA7acnbaMsq4DWi.doh.e1YFzHwh4cOfxtTj.hf4iA/sbeCInR.', '2025-06-16 11:44:18');
+(16, 'Bella', 'flores', 'bellaN@mvf.com', '$2y$10$6zxA7acnbaMsq4DWi.doh.e1YFzHwh4cOfxtTj.hf4iA/sbeCInR.', '2025-06-16 11:44:18'),
+(17, 'goyito', 'bonifas', 'goyito34@gmail.com', '$2y$10$/eG6FH9i9jtQAwS/7rEIV.t1HBVtcX/p6EPvoX647keLuRuPq3Z8m', '2025-06-18 13:39:26'),
+(18, 'valeria', 'Maldnado', 'Vo6SqU56KmfQNPwCjJfElnPqoWIFj34tEI6LMTdPK6c=', '$2y$10$JxFh2SpIY2htNi0Kx5OHDuj6mJ6jUe5e/Dpir23F3EJJZONb.m33a', '2025-06-22 07:24:07'),
+(19, 'Alexia', 'Gutierrez', 'rtBZb+c9mZGcoRqob344N89Fet63iwnhenld3QbC+RU=', '$2y$10$ycC/jPjjN0L1SkoY1YQKwuo.pMpL.L9npgkYFpRCipSO95J4vpc1C', '2025-06-22 01:02:04'),
+(20, 'Jesus', 'Diaz', 'JZc6z5yJYbPkNzm5SvLkVE9Dub6HC+/FHnJIsKucwhQ=', '$2y$10$2VE3yMZXAOj2pgVM2bDkw.XygNQoynvQn74HnjLaOoTfQoCoGLvoG', '2025-06-22 02:15:36');
 
 --
 -- Índices para tablas volcadas
@@ -154,6 +183,13 @@ ALTER TABLE `categorias`
 ALTER TABLE `cuentas`
   ADD PRIMARY KEY (`id`),
   ADD KEY `usuario_id` (`usuario_id`);
+
+--
+-- Indices de la tabla `sesiones`
+--
+ALTER TABLE `sesiones`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`);
 
 --
 -- Indices de la tabla `transacciones`
@@ -185,13 +221,19 @@ ALTER TABLE `usuarios`
 -- AUTO_INCREMENT de la tabla `categorias`
 --
 ALTER TABLE `categorias`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
 
 --
 -- AUTO_INCREMENT de la tabla `cuentas`
 --
 ALTER TABLE `cuentas`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
+-- AUTO_INCREMENT de la tabla `sesiones`
+--
+ALTER TABLE `sesiones`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
 
 --
 -- AUTO_INCREMENT de la tabla `transacciones`
@@ -209,7 +251,7 @@ ALTER TABLE `transferencias`
 -- AUTO_INCREMENT de la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- Restricciones para tablas volcadas
@@ -220,6 +262,12 @@ ALTER TABLE `usuarios`
 --
 ALTER TABLE `cuentas`
   ADD CONSTRAINT `cuentas_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE;
+
+--
+-- Filtros para la tabla `sesiones`
+--
+ALTER TABLE `sesiones`
+  ADD CONSTRAINT `sesiones_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `usuarios` (`id`);
 
 --
 -- Filtros para la tabla `transacciones`
