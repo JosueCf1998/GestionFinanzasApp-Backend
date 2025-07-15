@@ -42,7 +42,6 @@ class usuario_controllers extends BaseController
             if ($this->userModel->save()) {
                 $this->successResponse([
                     'id' => $this->userModel->get('id'),
-                    'email' => $email
                 ], 'Usuario registrado exitosamente');
             } else {
                 throw new RuntimeException('Error al guardar el usuario');
@@ -52,18 +51,64 @@ class usuario_controllers extends BaseController
         }
     }
 
-    /**
-     * Autentica un usuario y genera JWT
-     */
+
     public function login($f3)
-    {
-        //$this->validarToken($f3);
-        $result = $this->m_user->find();
-        $items = [];
-        foreach ($result as $user) {
-            $items[] = $user->cast();
+{
+    $this->validateRequestMethod('POST');
+
+    try {
+        $requestData = $this->parseAndValidateRequest($f3->get('BODY'));
+
+        // Desencriptar email recibido del frontend (encriptado con AES personalizado)
+        $email = AesDecryptor::decrypt(
+            $requestData['email'],
+            getenv('ENCRYPTION_PASSWORD') ?: "TuClaveSuperSecreta@2024"
+        );
+
+        // Encriptar con AES local (para buscar en la base de datos)
+         $emailEncrypted = SecurityHelper::encryptData($email, $this->encryptionKey, $this->iv);
+
+        // Buscar usuario
+        
+        $this->userModel->load(['email = ?', $emailEncrypted]);
+
+        if (!$this->userModel->loaded()) {
+            throw new RuntimeException('Credenciales inválidas', 401);
         }
+
+        // Validar contraseña
+        if (!password_verify($requestData['password'], $this->userModel->password)) {
+            throw new RuntimeException('Credenciales inválidas', 401);
+        }
+        
+        //$this->userModel->reset();
+        
+        $this->userModel->set('email', $emailEncrypted);
+        $this->userModel->set('password', password_hash($requestData['password'], PASSWORD_BCRYPT));
+        
+    
+        // Generar token
+        $token = JwtHelper::generateToken([
+            'id' => $this->userModel->get('id'),
+            'email' => $email
+        ], $this->jwtKey);
+
+        // Guardar sesión
+        SessionHelper::storeSession($f3, $this->userModel->get('id'), $token);
+
+        // Respuesta
+        $this->successResponse([
+            'token' => $token,
+            'id' => $this->userModel->get('id'),
+            'name' => $this->userModel->get('nombre'),
+            'email' => $email
+        ], 'Login exitoso');
+        
+    } catch (Exception $e) {
+        $this->handleError($e);
     }
+}
+
 
     /**
      * Obtiene el perfil del usuario autenticado
@@ -137,39 +182,43 @@ class usuario_controllers extends BaseController
         }
     }
 
-    /**
-     * Lista todos los usuarios (solo para administradores)
-     */
-    public function listAll($f3)
-    {
-        $this->validateToken($f3);
-        
-        try {
-            $users = $this->userModel->find();
-            $userList = [];
-            
-            foreach ($users as $user) {
-                $userData = $user->cast();
-                $userData['email'] = SecurityHelper::decryptData($userData['email'], $this->encryptionKey, $this->iv);
-                $userList[] = $userData;
+    
+public function listAll($f3)
+{
+    try {
+        $users = $this->userModel->find();
+        $userList = [];
+
+        foreach ($users as $user) {
+            $userData = $user->cast();
+
+            try {
+                
+                $userData['email'] = SecurityHelper::decryptData(
+                    $userData['email'],
+                    $this->encryptionKey,
+                    $this->iv
+                );
+            } catch (Exception $e) {
+                $userData['email'] = 'Error al desencriptar';
             }
-            
-            $this->successResponse([
-                'users' => $userList,
-                'count' => count($userList)
-            ], 'Lista de usuarios obtenida');
-        } catch (Exception $e) {
-            $this->handleError($e);
+           
+            $userData['password'];
+            $userList[] = $userData;
         }
+
+        $this->successResponse([
+            'users' => $userList,
+            'count' => count($userList)
+        ], 'Lista de usuarios obtenida');
+    } catch (Exception $e) {
+        $this->handleError($e);
     }
+}
 
-    /***********************
-     * Métodos protegidos *
-     ***********************/
 
-    /**
-     * Valida el token JWT y establece el user_id en el framework
-     */
+
+    
     protected function validateToken($f3)
     {
         try {
@@ -182,9 +231,7 @@ class usuario_controllers extends BaseController
         }
     }
 
-    /**
-     * Valida los datos del usuario antes de registrarlo
-     */
+    
     protected function validateUserData(array $data, string $email): void
     {   
         if (strlen($data['password']) < 8) {
@@ -243,10 +290,20 @@ class usuario_controllers extends BaseController
      * Obtiene los datos del usuario para la respuesta
      */
     protected function getUserResponseData(): array
-    {
-        $userData = $this->userModel->cast();
-        $userData['email'] = SecurityHelper::decryptData($userData['email'], $this->encryptionKey, $this->iv);
-        unset($userData['password']); // Nunca devolver la contraseña
-        return $userData;
+{
+    $userData = $this->userModel->cast();
+
+    try {
+        $userData['email'] = AesDecryptor::decrypt(
+            $userData['email'],
+            getenv('ENCRYPTION_PASSWORD') ?: "TuClaveSuperSecreta@2024"
+        );
+    } catch (Exception $e) {
+        $userData['email'] = 'Error al desencriptar';
     }
+
+    unset($userData['password']); // Nunca devolver la contraseña
+    return $userData;
+}
+
 }

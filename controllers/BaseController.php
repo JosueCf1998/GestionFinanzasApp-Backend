@@ -38,6 +38,6 @@ class BaseController
     protected function handleError(Exception $e): void
     {
         error_log('Error: ' . $e->getMessage());
-        $this->errorResponse($e->getMessage(), $e->getCode() ?: 500);
+        $this->errorResponse($e->getMessage(), (int)($e->getCode() ?: 500));
     }
 }

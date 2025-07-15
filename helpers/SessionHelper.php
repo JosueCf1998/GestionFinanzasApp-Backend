@@ -40,4 +40,15 @@ class SessionHelper
         $db = $f3->get('DB');
         $db->exec("DELETE FROM sesiones WHERE user_id = ? AND token = ?", [$userId, $token]);
     }
+
+    public static function storeSession($f3, $userId, $token, $dateCreated = null)
+{
+    // Ejemplo: guardar la sesión en la base de datos
+    $db = $f3->get('DB');
+    $db->exec(
+        "INSERT INTO sesiones (user_id, token, creado_en) VALUES (?, ?, NOW())",
+        [$userId, $token]
+    );
 }
+}
+
