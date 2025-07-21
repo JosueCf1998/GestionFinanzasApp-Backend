@@ -89,12 +89,14 @@ class usuario_controllers extends BaseController
     
         // Generar token
         $token = JwtHelper::generateToken([
-            'id' => $this->userModel->get('id'),
-            'email' => $email
-        ], $this->jwtKey);
+        'data' => [
+        'user_id' => $this->userModel->get('id'),
+        'email' => $email
+        ]
+    ], $this->jwtKey);
 
         // Guardar sesión
-        SessionHelper::storeSession($f3, $this->userModel->get('id'), $token);
+        SessionHelper::createSession($f3, $this->userModel->get('id'), $token);
 
         // Respuesta
         $this->successResponse([
@@ -132,7 +134,7 @@ class usuario_controllers extends BaseController
      */
     public function update($f3)
     {
-        $this->validateToken($f3);
+        //$this->validateToken($f3);
         $userId = $f3->get('PARAMS.user_id');
         
         try {
@@ -157,30 +159,32 @@ class usuario_controllers extends BaseController
      * Elimina un usuario
      */
     public function delete($f3)
-    {
-        $this->validateToken($f3);
-        $userId = $f3->get('PARAMS.user_id');
-        
-        try {
-            $this->userModel->load(['id = ?', $userId]);
-            
-            if (!$this->userModel->loaded()) {
-                throw new RuntimeException('Usuario no encontrado', 404);
-            }
-            
-            // Eliminar sesiones activas primero
-            $db = $f3->get('DB');
-            $db->exec("DELETE FROM sesiones WHERE user_id = ?", [$userId]);
-            
-            $this->userModel->erase();
-            
-            $this->successResponse([
-                'id' => $userId
-            ], 'Usuario eliminado correctamente');
-        } catch (Exception $e) {
-            $this->handleError($e);
+{
+    $body = json_decode($f3->get('BODY'), true);
+    $userId = $body['id'] ?? null;
+    
+    try {
+        if (!$userId) {
+            throw new RuntimeException('ID no proporcionado', 400);
         }
+
+        $this->userModel->load(['id = ?', $userId]);
+
+        if (!$this->userModel->loaded()) {
+            throw new RuntimeException('Usuario no encontrado', 404);
+        }
+
+        $db = $f3->get('DB');
+        $db->exec("DELETE FROM sesiones WHERE user_id = ?", [$userId]);
+
+        $this->userModel->erase();
+
+        $this->successResponse(['id' => $userId], 'Usuario eliminado correctamente');
+    } catch (Exception $e) {
+        $this->handleError($e);
     }
+}
+
 
     
 public function listAll($f3)
@@ -220,16 +224,23 @@ public function listAll($f3)
 
     
     protected function validateToken($f3)
-    {
-        try {
-            $token = JwtHelper::getBearerToken();
-            $decoded = JwtHelper::validateToken($token, $this->jwtKey);
-            SessionHelper::verifySession($f3, $decoded->data->user_id, $token);
-            $f3->set('user_id', $decoded->data->user_id);
-        } catch (Exception $e) {
-            $this->handleError($e);
+        {
+            try {
+                $token = JwtHelper::getBearerToken();
+                $decoded = JwtHelper::validateToken($token, $this->jwtKey);
+            
+                if (!isset($decoded->data->user_id)) {
+                    throw new RuntimeException('Token inválido: user_id no presente', 401);
+                }
+            
+                SessionHelper::verifySession($f3, $decoded->data->user_id, $token);
+                $f3->set('user_id', $decoded->data->user_id);
+            
+            } catch (Exception $e) {
+                $this->handleError($e);
+            }
         }
-    }
+
 
     
     protected function validateUserData(array $data, string $email): void
