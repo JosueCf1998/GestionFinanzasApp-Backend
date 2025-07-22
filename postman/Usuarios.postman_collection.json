@@ -1,0 +1,143 @@
+{
+	"info": {
+		"_postman_id": "3834a7b4-37e6-4607-816d-de18600abac6",
+		"name": "Usuarios",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "36127622"
+	},
+	"item": [
+		{
+			"name": "login",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"email\": \"zdwE1n2SheeMpeJmsEgyEw==OEEeuCRdRW2KVIGOuuhimw==TBwQRgqkDkkmCpd32oY0KoCc4l2cSu1jhxVWj0zYO1o=\",\r\n  \"password\": \"9g17upKjeeX7qaA0cqE5bA==K52Mdof+FEdoxSu+qQkZMA==k5Xy2NS5fY2hLjiR0RweYQ==\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/login-usuario"
+			},
+			"response": []
+		},
+		{
+			"name": "register",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"nombre\": \"Gregori\",\r\n  \"apellidos\": \"Ramirez\",\r\n  \"email\": \"zdwE1n2SheeMpeJmsEgyEw==OEEeuCRdRW2KVIGOuuhimw==TBwQRgqkDkkmCpd32oY0KoCc4l2cSu1jhxVWj0zYO1o=\",\r\n  \"password\": \"9g17upKjeeX7qaA0cqE5bA==K52Mdof+FEdoxSu+qQkZMA==k5Xy2NS5fY2hLjiR0RweYQ==\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/crear-usuario"
+			},
+			"response": []
+		},
+		{
+			"name": "listAll",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/listado-usuario"
+			},
+			"response": []
+		},
+		{
+			"name": "update",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"nombre\": \"Alexia\",\r\n  \"apellidos\": \"Gutierrez\",\r\n  \"email\": \"alexia13@gmail.com\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/actualizar-usuario/27"
+			},
+			"response": []
+		},
+		{
+			"name": "token timeout",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjI2LCJlbWFpbCI6Imx1aXMxMjNAZ21haWwuY29tIn0sImlhdCI6MTc1MzA3NDA0NiwiZXhwIjoxNzUzMDc0MjI2fQ.aDTy1bjAghG6aAj76OoDxnnMbOWpj39Z6jvzDv-0SQI",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/perfil-usuario"
+			},
+			"response": []
+		},
+		{
+			"name": "delete user",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjI2LCJlbWFpbCI6Imx1aXMxMjNAZ21haWwuY29tIn0sImlhdCI6MTc1MzA3NDA0NiwiZXhwIjoxNzUzMDc0MjI2fQ.aDTy1bjAghG6aAj76OoDxnnMbOWpj39Z6jvzDv-0SQI",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"id\": \"26\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/eliminar-usuario",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"gestion_finanzas",
+						"GestionFinanzasApp-Backend",
+						"eliminar-usuario"
+					],
+					"query": [
+						{
+							"key": "id",
+							"value": "26",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

@@ -1,6 +1,12 @@
 <?php
 
 require_once 'BaseController.php';
+require_once 'BaseController.php';
+require_once 'helpers/ResponseHelper.php';
+require_once 'helpers/SecurityHelper.php';
+require_once 'helpers/JwtHelper.php';
+require_once 'helpers/SessionHelper.php';
+require_once 'helpers/AesDecryptor.php';
 
 class categoria_controllers extends BaseController
 {
@@ -17,7 +23,7 @@ class categoria_controllers extends BaseController
 
     public function crear($f3)
      {
-        $this->validarToken($f3); 
+        //$this->validarToken($f3); 
         $body = json_decode($f3->get('BODY'), true);
 
         $this->m_categoria->set('nombre', $body['nombre']);
@@ -40,7 +46,8 @@ class categoria_controllers extends BaseController
      
 
     public function actualizar($f3)
-    {   $this->validarToken($f3);
+    {   
+        //$this->validarToken($f3);
         $categoria_id = $f3->get('PARAMS.categoria_id');
         $this->m_categoria->load(['id = ?', $categoria_id]);
     
@@ -80,28 +87,6 @@ class categoria_controllers extends BaseController
     }
 
 
-    public function consultar($f3)
-     {
-         $categoria_id = $f3->get('PARAMS.categoria_id');
-         $this->m_categoria->load(['id = ?', $categoria_id]);
-     
-         if ($this->m_categoria->loaded()) {
-             $this->successResponse([
-                 'mensaje' => 'Categoría encontrada',
-                 'info' => [
-                     'items' => $this->m_categoria->cast()
-                 ]
-             ]);
-         } else {
-             $this->errorResponse(
-                 'Categoría no encontrada',
-                 404,
-                 ['items' => []]
-             );
-         }
-     }
-
-
      private function validarToken($f3)
      {
          $headers = getallheaders();
@@ -129,7 +114,7 @@ class categoria_controllers extends BaseController
 
     public function eliminar($f3)
      {
-         $this->validarToken($f3);      
+        //$this->validarToken($f3);      
          $body = json_decode($f3->get('BODY'), true);
          $categoria_id = $body['categoria_id'];
      
@@ -153,7 +138,7 @@ class categoria_controllers extends BaseController
     
     public function listado($f3)
     {
-        $this->validarToken($f3);
+        //$this->validarToken($f3);
         $result = $this->m_categoria->find();
         $items = [];
         foreach ($result as $categoria) {
