@@ -1,0 +1,98 @@
+{
+	"info": {
+		"_postman_id": "e850e112-d6c9-497c-b9a0-3d7545b5a8b6",
+		"name": "Categoria",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "36127622"
+	},
+	"item": [
+		{
+			"name": "register",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"nombre\": \"Alimentos\",\r\n  \"tipo\": \"Gasto\",\r\n  \"icono\": \"fa-utensils\",\r\n  \"color\": \"#FF0000\"\r\n}\r\n\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/crear-categoria"
+			},
+			"response": []
+		},
+		{
+			"name": "listAll",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/listado-categoria"
+			},
+			"response": []
+		},
+		{
+			"name": "update",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"nombre\": \"Transport\",\r\n  \"tipo\": \"Gasto\",\r\n  \"icono\": \"fa-bus\",\r\n  \"color\": \"#00FF00\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/actualizar-categorias/40"
+			},
+			"response": []
+		},
+		{
+			"name": "delete category",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjI2LCJlbWFpbCI6Imx1aXMxMjNAZ21haWwuY29tIn0sImlhdCI6MTc1MzA3NDA0NiwiZXhwIjoxNzUzMDc0MjI2fQ.aDTy1bjAghG6aAj76OoDxnnMbOWpj39Z6jvzDv-0SQI",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"categoria_id\": 35\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/eliminar-categoria",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"gestion_finanzas",
+						"GestionFinanzasApp-Backend",
+						"eliminar-categoria"
+					],
+					"query": [
+						{
+							"key": "id",
+							"value": "26",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

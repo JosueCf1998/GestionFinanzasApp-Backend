@@ -1,6 +1,13 @@
 <?php
 
 require_once 'BaseController.php';
+require_once 'BaseController.php';
+require_once 'helpers/ResponseHelper.php';
+require_once 'helpers/SecurityHelper.php';
+require_once 'helpers/JwtHelper.php';
+require_once 'helpers/SessionHelper.php';
+require_once 'helpers/AesDecryptor.php';
+
 
 class cuentas_controllers extends BaseController
 {
@@ -100,27 +107,6 @@ class cuentas_controllers extends BaseController
 
 
 
-    public function consultar($f3)
-     {
-         $cuenta_id = $f3->get('PARAMS.cuenta_id');
-         $this->m_cuenta->load(['id = ?', $cuenta_id]);
-     
-         if ($this->m_cuenta->loaded() > 0) {
-             $this->successResponse([
-                 'mensaje' => 'Cuenta encontrada',
-                 'info' => [
-                     'items' => $this->m_cuenta->cast()
-                 ]
-             ]);
-         } else {
-             $this->errorResponse(
-                 'Cuenta no encontrada',
-                 404,
-                 ['items' => []]
-             );
-         }
-     }
-
     public function eliminar($f3)
       {
           $this->validarToken($f3);
@@ -144,6 +130,7 @@ class cuentas_controllers extends BaseController
 
     public function listado($f3)
     {
+        $this->validarToken($f3);
         $result = $this->m_cuenta->find();
         $items = [];
         foreach ($result as $cuenta) {

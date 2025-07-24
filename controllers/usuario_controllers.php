@@ -134,7 +134,7 @@ class usuario_controllers extends BaseController
      */
     public function update($f3)
     {
-        //$this->validateToken($f3);
+        $this->validateToken($f3);
         $userId = $f3->get('PARAMS.user_id');
         
         try {
@@ -160,6 +160,7 @@ class usuario_controllers extends BaseController
      */
     public function delete($f3)
 {
+    $this->validarToken($f3);
     $body = json_decode($f3->get('BODY'), true);
     $userId = $body['id'] ?? null;
     
@@ -189,6 +190,7 @@ class usuario_controllers extends BaseController
     
 public function listAll($f3)
 {
+    $this->validarToken($f3);
     try {
         $users = $this->userModel->find();
         $userList = [];

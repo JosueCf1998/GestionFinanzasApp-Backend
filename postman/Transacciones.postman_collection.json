@@ -1,0 +1,98 @@
+{
+	"info": {
+		"_postman_id": "390da344-b275-4455-82f0-7b4b56803f77",
+		"name": "Transacciones",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "36127622"
+	},
+	"item": [
+		{
+			"name": "register",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"categoria_id\": 24,\r\n  \"cuenta_id\": 9,\r\n  \"monto\": 5850,\r\n  \"tipo\": \"gasto\",\r\n  \"descripcion\": \"Compra Farmacia\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/crear-transacciones"
+			},
+			"response": []
+		},
+		{
+			"name": "listAll",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/listado-transacciones"
+			},
+			"response": []
+		},
+		{
+			"name": "update",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"categoria_id\": 23,\r\n  \"cuenta_id\": 9,\r\n  \"monto\": 85550,\r\n  \"tipo\": \"Ingreso\",\r\n  \"descripcion\": \"Compra modificada\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/actualizar-transacciones/6"
+			},
+			"response": []
+		},
+		{
+			"name": "delete Transacciones",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjI2LCJlbWFpbCI6Imx1aXMxMjNAZ21haWwuY29tIn0sImlhdCI6MTc1MzA3NDA0NiwiZXhwIjoxNzUzMDc0MjI2fQ.aDTy1bjAghG6aAj76OoDxnnMbOWpj39Z6jvzDv-0SQI",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"transac_id\": 7\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/eliminar-transacciones",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"gestion_finanzas",
+						"GestionFinanzasApp-Backend",
+						"eliminar-transacciones"
+					],
+					"query": [
+						{
+							"key": "id",
+							"value": "26",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

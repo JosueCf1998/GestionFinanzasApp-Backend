@@ -1,0 +1,98 @@
+{
+	"info": {
+		"_postman_id": "6ffce9e4-6f08-4e5a-a73e-ed86c9e37dfb",
+		"name": "Transferencias",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "36127622"
+	},
+	"item": [
+		{
+			"name": "register",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"cuenta_id\": 8,\r\n  \"tipo\": \"envio\",\r\n  \"cuenta_origen\": \"11554646655\",\r\n  \"cuenta_destino\": \"02646546444\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/crear-transferencias"
+			},
+			"response": []
+		},
+		{
+			"name": "listAll",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/listado-transferencias"
+			},
+			"response": []
+		},
+		{
+			"name": "update",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"cuenta_id\": 8,\r\n  \"tipo\": \"Recibido\",\r\n  \"cuenta_origen\": \"115555246655\",\r\n  \"cuenta_destino\": \"56202646546444\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/actualizar-transferencias/7"
+			},
+			"response": []
+		},
+		{
+			"name": "delete Transacciones",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjI2LCJlbWFpbCI6Imx1aXMxMjNAZ21haWwuY29tIn0sImlhdCI6MTc1MzA3NDA0NiwiZXhwIjoxNzUzMDc0MjI2fQ.aDTy1bjAghG6aAj76OoDxnnMbOWpj39Z6jvzDv-0SQI",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"transf_id\": 7\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/eliminar-transferencias",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"gestion_finanzas",
+						"GestionFinanzasApp-Backend",
+						"eliminar-transferencias"
+					],
+					"query": [
+						{
+							"key": "id",
+							"value": "26",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

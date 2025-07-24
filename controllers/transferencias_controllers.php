@@ -1,6 +1,11 @@
 <?php
 
 require_once 'BaseController.php';
+require_once 'helpers/ResponseHelper.php';
+require_once 'helpers/SecurityHelper.php';
+require_once 'helpers/JwtHelper.php';
+require_once 'helpers/SessionHelper.php';
+require_once 'helpers/AesDecryptor.php';
 
 class transferencias_controllers extends BaseController
 {
@@ -60,27 +65,7 @@ class transferencias_controllers extends BaseController
      }
 
 
-    public function consultar($f3)
-     {
-         $transf_id = $f3->get('PARAMS.transf_id');
-         $this->m_transferencia->load(['id = ?', $transf_id]);
-     
-         if ($this->m_transferencia->loaded() > 0) {
-             $this->successResponse([
-                 'mensaje' => 'Transferencia encontrada',
-                 'info' => [
-                     'items' => $this->m_transferencia->cast()
-                 ]
-             ]);
-         } else {
-             $this->errorResponse(
-                 'Transferencia no encontrada',
-                 404,
-                 ['items' => []]
-             );
-         }
-     }
-
+    
     public function eliminar($f3)
       {
           $this->validarToken($f3);

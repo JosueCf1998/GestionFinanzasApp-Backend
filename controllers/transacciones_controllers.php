@@ -1,6 +1,12 @@
 <?php
 
 require_once 'BaseController.php';
+require_once 'helpers/ResponseHelper.php';
+require_once 'helpers/SecurityHelper.php';
+require_once 'helpers/JwtHelper.php';
+require_once 'helpers/SessionHelper.php';
+require_once 'helpers/AesDecryptor.php';
+
 
 class transacciones_controllers extends BaseController
 {
@@ -23,7 +29,7 @@ class transacciones_controllers extends BaseController
           $this->m_transaccion->set('monto', $body['monto']);
           $this->m_transaccion->set('tipo', $body['tipo']);
           $this->m_transaccion->set('descripcion', $body['descripcion']);
-          $this->m_transaccion->set('fecha_registro', $body['fecha_registro']);
+          
       
           
           if ($this->m_transaccion->save()) {
@@ -95,7 +101,6 @@ class transacciones_controllers extends BaseController
           $this->m_transaccion->set('monto', $body['monto']);
           $this->m_transaccion->set('tipo', $body['tipo']);
           $this->m_transaccion->set('descripcion', $body['descripcion']);
-          $this->m_transaccion->set('fecha_registro', $body['fecha_registro']);
       
           
           $this->m_transaccion->save();
@@ -108,26 +113,6 @@ class transacciones_controllers extends BaseController
 
 
 
-    public function consultar($f3)
-     {
-         $transac_id = $f3->get('PARAMS.transac_id');
-         $this->m_transaccion->load(['id = ?', $transac_id]);
-     
-         if ($this->m_transaccion->loaded() > 0) {
-             $this->successResponse([
-                 'mensaje' => 'Transacción encontrada',
-                 'info' => [
-                     'items' => $this->m_transaccion->cast()
-                 ]
-             ]);
-         } else {
-             $this->errorResponse(
-                 'Transacción no encontrada',
-                 404,
-                 ['items' => []]
-             );
-         }
-     }
 
     public function eliminar($f3)
       {
