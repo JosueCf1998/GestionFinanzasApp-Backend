@@ -31,17 +31,23 @@ class usuario_controllers extends BaseController
         
         try {
             $requestData = $this->parseAndValidateRequest($f3->get('BODY'));
-            $email = AesDecryptor::decrypt(
+            $emailDecrypt = AesDecryptor::decrypt(
                 $requestData['email'], 
                 getenv('ENCRYPTION_PASSWORD') ?: "TuClaveSuperSecreta@2024"
             );
+            $passwordDecrypt = AesDecryptor::decrypt(
+            $requestData['password'],
+            getenv('ENCRYPTION_PASSWORD') ?: "TuClaveSuperSecreta@2024"
+        );
             
-            $this->validateUserData($requestData, $email);
-            $this->prepareNewUser($requestData, $email);
+            $this->validateUserData($requestData, $emailDecrypt);
+            $this->prepareNewUser($requestData, $emailDecrypt, $passwordDecrypt);
             
             if ($this->userModel->save()) {
                 $this->successResponse([
                     'id' => $this->userModel->get('id'),
+                    'name' => $this->userModel->get('nombre'),
+                    'email' => $emailDecrypt                    
                 ], 'Usuario registrado exitosamente');
             } else {
                 throw new RuntimeException('Error al guardar el usuario');
@@ -59,39 +65,58 @@ class usuario_controllers extends BaseController
     try {
         $requestData = $this->parseAndValidateRequest($f3->get('BODY'));
 
-        // Desencriptar email recibido del frontend (encriptado con AES personalizado)
-        $email = AesDecryptor::decrypt(
+        $emailDecrypt = AesDecryptor::decrypt(
             $requestData['email'],
             getenv('ENCRYPTION_PASSWORD') ?: "TuClaveSuperSecreta@2024"
         );
 
-        // Encriptar con AES local (para buscar en la base de datos)
-         $emailEncrypted = SecurityHelper::encryptData($email, $this->encryptionKey, $this->iv);
+         $passwordDecrypt = AesDecryptor::decrypt(
+            $requestData['password'],
+            getenv('ENCRYPTION_PASSWORD') ?: "TuClaveSuperSecreta@2024"
+        );
+        
+         $emailEncrypted = SecurityHelper::encryptData($emailDecrypt, $this->encryptionKey, $this->iv);
 
         // Buscar usuario
-        
         $this->userModel->load(['email = ?', $emailEncrypted]);
 
         if (!$this->userModel->loaded()) {
-            throw new RuntimeException('Credenciales inválidas', 401);
+            throw new RuntimeException('Credenciales inválidas.', 401);
         }
 
+        // Validar Usuario
+        $usuarios = $this->userModel->find();
+        $usuarioEncontrado = null;
+
+        foreach ($usuarios as $usuario) {
+            try {
+                $emailBD = SecurityHelper::decryptData($usuario->email, $this->encryptionKey, $this->iv);
+                if ($emailBD === $emailDecrypt) {
+                    $usuarioEncontrado = $usuario;
+                    break;
+                }
+            } catch (Exception $e) {
+                continue;
+            }
+        }
+
+        if (!$usuarioEncontrado) {
+            throw new RuntimeException('Credenciales inválidas.', 401);
+        }
         // Validar contraseña
-        if (!password_verify($requestData['password'], $this->userModel->password)) {
-            throw new RuntimeException('Credenciales inválidas', 401);
+        if (!password_verify($passwordDecrypt, $usuarioEncontrado->password)) {
+            throw new RuntimeException('Credenciales inválidas.', 401);
         }
         
-        //$this->userModel->reset();
         
         $this->userModel->set('email', $emailEncrypted);
         $this->userModel->set('password', password_hash($requestData['password'], PASSWORD_BCRYPT));
         
-    
         // Generar token
         $token = JwtHelper::generateToken([
         'data' => [
         'user_id' => $this->userModel->get('id'),
-        'email' => $email
+        'email' => $emailDecrypt
         ]
     ], $this->jwtKey);
 
@@ -103,7 +128,7 @@ class usuario_controllers extends BaseController
             'token' => $token,
             'id' => $this->userModel->get('id'),
             'name' => $this->userModel->get('nombre'),
-            'email' => $email
+            'email' => $emailDecrypt
         ], 'Login exitoso');
         
     } catch (Exception $e) {
@@ -260,13 +285,13 @@ public function listAll($f3)
     /**
      * Prepara un nuevo usuario para registro
      */
-    protected function prepareNewUser(array $data, string $email): void
+    protected function prepareNewUser(array $data, string $email, string $password): void
     {
         $this->userModel->reset();
         $this->userModel->set('nombre', SecurityHelper::sanitizeInput($data['nombre']));
         $this->userModel->set('apellidos', SecurityHelper::sanitizeInput($data['apellidos']));
-        $this->userModel->set('email', SecurityHelper::encryptData($email, $this->encryptionKey, $this->iv));
-        $this->userModel->set('password', password_hash($data['password'], PASSWORD_BCRYPT));
+        $this->userModel->set('email', SecurityHelper::sanitizeInput($email));
+        $this->userModel->set('password', password_hash($password, PASSWORD_BCRYPT));
         $this->userModel->set('fecha_registro', date('Y-m-d H:i:s'));
     }
 
