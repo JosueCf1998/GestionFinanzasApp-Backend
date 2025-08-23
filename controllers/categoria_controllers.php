@@ -9,20 +9,19 @@ require_once 'helpers/AesDecryptor.php';
 
 class categoria_controllers extends BaseController
 {
-    
-    public $m_categoria = null;
+    protected $m_categoria;
+    private $jwtKey;
 
     public function __construct()
     {
         $this->m_categoria = new m_categorias();
+        $this->jwtKey = getenv('JWT_SECRET') ?: '$#Gre1410#$';
     }
 
-    // Métodos de respuesta centralizados
-    
-
     public function crear($f3)
-     {
-        $this->validarToken($f3); 
+    {
+        $token = JwtHelper::getBearerToken($f3);
+        $decoded = JwtHelper::validateToken($token, $this->jwtKey); 
         $body = json_decode($f3->get('BODY'), true);
 
         $this->m_categoria->set('nombre', $body['nombre']);
@@ -30,23 +29,22 @@ class categoria_controllers extends BaseController
         $this->m_categoria->set('icono', $body['icono']);
         $this->m_categoria->set('color', $body['color']);
      
-         if ($this->m_categoria->save()) {
-             $this->successResponse([
-                 'mensaje' => 'Categoría creada correctamente',
-                 'info' => [
-                     'id' => $this->m_categoria->get('id')
-                 ]
-             ]);
-         } else {
-             $this->errorResponse('No se pudo crear la categoría', 500);
-         }
-     }
-
-     
+        if ($this->m_categoria->save()) {
+            $this->successResponse([
+                'mensaje' => 'Categoría creada correctamente',
+                'info' => [
+                    'id' => $this->m_categoria->get('id')
+                ]
+            ]);
+        } else {
+            $this->errorResponse('No se pudo crear la categoría', 500);
+        }
+    }
 
     public function actualizar($f3)
     {   
-        $this->validarToken($f3);
+        $token = JwtHelper::getBearerToken($f3);
+        $decoded = JwtHelper::validateToken($token, $this->jwtKey);
         $categoria_id = $f3->get('PARAMS.categoria_id');
         $this->m_categoria->load(['id = ?', $categoria_id]);
     
@@ -55,28 +53,21 @@ class categoria_controllers extends BaseController
             return;
         }
     
-        
         $body = json_decode($f3->get('BODY'), true);
     
-        
         $_categoria = new m_categorias();
         $_categoria->load(['nombre = ? AND id <> ?', $body['nombre'], $categoria_id]);
     
         if ($_categoria->loaded()) {
-            $this->errorResponse(
-                'Registro no se pudo modificar debido a que el nombre se encuentra en uso por otra categoría',
-                409
-            );
+            $this->errorResponse('El nombre ya está en uso por otra categoría', 409);
             return;
         }
     
-        
         $this->m_categoria->set('nombre', $body['nombre']);
         $this->m_categoria->set('tipo', $body['tipo']);
         $this->m_categoria->set('icono', $body['icono']);
         $this->m_categoria->set('color', $body['color']);
     
-        
         $this->m_categoria->save();
     
         $this->successResponse([
@@ -85,69 +76,40 @@ class categoria_controllers extends BaseController
         ]);
     }
 
-
-     private function validarToken($f3)
-     {
-         $headers = getallheaders();
-         if (!isset($headers['Authorization'])) {
-             echo json_encode(['mensaje' => 'Token no proporcionado']);
-             http_response_code(401);
-             exit;
-         }
-        if (preg_match('/Bearer\s(\S+)/', $headers['Authorization'], $matches)) {
-             $token = $matches[1];
-             try {
-                 $decoded = \Firebase\JWT\JWT::decode($token, new \Firebase\JWT\Key('$#Gre1410#$', 'HS256'));
-                 $f3->set('user_id', $decoded->data->user_id);
-             } catch (Exception $e) {
-                 echo json_encode(['mensaje' => 'Token inválido o expirado']);
-                 http_response_code(403);
-                 exit;
-             }
-         } else {
-             echo json_encode(['mensaje' => 'Formato de token inválido']);
-             http_response_code(400);
-             exit;
-         }
-     }
-
     public function eliminar($f3)
-     {
-        $this->validarToken($f3);      
-         $body = json_decode($f3->get('BODY'), true);
-         $categoria_id = $body['categoria_id'];
+    {
+        $token = JwtHelper::getBearerToken($f3);
+        $decoded = JwtHelper::validateToken($token, $this->jwtKey);
+        $body = json_decode($f3->get('BODY'), true);
+        $categoria_id = $body['categoria_id'];
      
-         
-         $this->m_categoria->load(['id = ?', $categoria_id]);
+        $this->m_categoria->load(['id = ?', $categoria_id]);
      
-         if ($this->m_categoria->loaded() > 0) {
-             $this->m_categoria->erase();
-             $this->successResponse([
-                 'mensaje' => 'Categoría eliminada',
-                 'info' => ['id' => $categoria_id]
-             ]);
-         } else {
-             $this->errorResponse('Categoría no encontrada', 404);
-         }
-     }
+        if ($this->m_categoria->loaded() > 0) {
+            $this->m_categoria->erase();
+            $this->successResponse([
+                'mensaje' => 'Categoría eliminada',
+                'info' => ['id' => $categoria_id]
+            ]);
+        } else {
+            $this->errorResponse('Categoría no encontrada', 404);
+        }
+    }
 
-
-    
-    
-    
     public function listado($f3)
     {
-        $this->validarToken($f3);
+        $token = JwtHelper::getBearerToken($f3);
+        $decoded = JwtHelper::validateToken($token, $this->jwtKey);
         $result = $this->m_categoria->find();
         $items = [];
         foreach ($result as $categoria) {
             $items[] = $categoria->cast();
         }
-     if (count($items) > 0) {
-         $this->successResponse(['items' => $items, 'Total' => count($items)]);
-     } else {
-         $this->errorResponse('Aún no hay registros que mostrar', 404, ['items' => [], 'Total' => 0]);
-     }
-             
+
+        if (count($items) > 0) {
+            $this->successResponse(['items' => $items, 'Total' => count($items)]);
+        } else {
+            $this->errorResponse('Aún no hay registros que mostrar', 404, ['items' => [], 'Total' => 0]);
+        }
     }
 }

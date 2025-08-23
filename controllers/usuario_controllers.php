@@ -46,8 +46,6 @@ class usuario_controllers extends BaseController
             if ($this->userModel->save()) {
                 $this->successResponse([
                     'id' => $this->userModel->get('id'),
-                    'name' => $this->userModel->get('nombre'),
-                    'email' => $emailDecrypt                    
                 ], 'Usuario registrado exitosamente');
             } else {
                 throw new RuntimeException('Error al guardar el usuario');
@@ -108,26 +106,26 @@ class usuario_controllers extends BaseController
             throw new RuntimeException('Credenciales inválidas.', 401);
         }
         
-        
+        $this->userModel->reset();
         $this->userModel->set('email', $emailEncrypted);
         $this->userModel->set('password', password_hash($requestData['password'], PASSWORD_BCRYPT));
         
-        // Generar token
+         // Generar token
         $token = JwtHelper::generateToken([
         'data' => [
-        'user_id' => $this->userModel->get('id'),
+        'user_id' => $usuarioEncontrado->id,  // 👈 usar $usuarioEncontrado
         'email' => $emailDecrypt
         ]
     ], $this->jwtKey);
 
         // Guardar sesión
-        SessionHelper::createSession($f3, $this->userModel->get('id'), $token);
+        SessionHelper::createSession($f3, (int)$usuarioEncontrado->id, $token);
 
         // Respuesta
         $this->successResponse([
             'token' => $token,
-            'id' => $this->userModel->get('id'),
-            'name' => $this->userModel->get('nombre'),
+            'id' => $usuarioEncontrado->id,        // 👈 también aquí
+            'name' => $usuarioEncontrado->nombre,  // 👈 usar nombre del encontrado
             'email' => $emailDecrypt
         ], 'Login exitoso');
         
@@ -290,7 +288,7 @@ public function listAll($f3)
         $this->userModel->reset();
         $this->userModel->set('nombre', SecurityHelper::sanitizeInput($data['nombre']));
         $this->userModel->set('apellidos', SecurityHelper::sanitizeInput($data['apellidos']));
-        $this->userModel->set('email', SecurityHelper::sanitizeInput($email));
+        $this->userModel->set('email', SecurityHelper::encryptData($email, $this->encryptionKey, $this->iv));
         $this->userModel->set('password', password_hash($password, PASSWORD_BCRYPT));
         $this->userModel->set('fecha_registro', date('Y-m-d H:i:s'));
     }

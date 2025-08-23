@@ -2,6 +2,7 @@
 
 class BaseController
 {
+    
     protected function successResponse($data = [], string $message = 'Operación exitosa'): void
     {
         ResponseHelper::success($data, $message);
@@ -40,4 +41,7 @@ class BaseController
         error_log('Error: ' . $e->getMessage());
         $this->errorResponse($e->getMessage(), (int)($e->getCode() ?: 500));
     }
+    
+    
+    
 }

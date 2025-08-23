@@ -10,15 +10,19 @@ require_once 'helpers/AesDecryptor.php';
 
 class transacciones_controllers extends BaseController
 {
-    public $m_transaccion = null;
+    protected $m_transaccion;
+    private $jwtKey;
+
     public function __construct()
     {
         $this->m_transaccion = new m_transacciones();
+        $this->jwtKey = getenv('JWT_SECRET') ?: '$#Gre1410#$';
     }
     
     public function crear($f3)
       {
-         $this->validarToken($f3); 
+         $token = JwtHelper::getBearerToken($f3);
+         $decoded = JwtHelper::validateToken($token, $this->jwtKey); 
       
           
           $body = json_decode($f3->get('BODY'), true);
@@ -45,33 +49,10 @@ class transacciones_controllers extends BaseController
       }
       
 
-     private function validarToken($f3)
-     {
-         $headers = getallheaders();
-         if (!isset($headers['Authorization'])) {
-             echo json_encode(['mensaje' => 'Token no proporcionado']);
-             http_response_code(401);
-             exit;
-         }
-        if (preg_match('/Bearer\s(\S+)/', $headers['Authorization'], $matches)) {
-             $token = $matches[1];
-             try {
-                 $decoded = \Firebase\JWT\JWT::decode($token, new \Firebase\JWT\Key('$#Gre1410#$', 'HS256'));
-                 $f3->set('user_id', $decoded->data->user_id);
-             } catch (Exception $e) {
-                 echo json_encode(['mensaje' => 'Token inválido o expirado']);
-                 http_response_code(403);
-                 exit;
-             }
-         } else {
-             echo json_encode(['mensaje' => 'Formato de token inválido']);
-             http_response_code(400);
-             exit;
-         }
-     }
-
     public function actualizar($f3)
       {
+        $token = JwtHelper::getBearerToken($f3);
+        $decoded = JwtHelper::validateToken($token, $this->jwtKey);
           $transac_id = $f3->get('PARAMS.transac_id');
           $this->m_transaccion->load(['id = ?', $transac_id]);
       
@@ -116,7 +97,8 @@ class transacciones_controllers extends BaseController
 
     public function eliminar($f3)
       {
-          $this->validarToken($f3);
+          $token = JwtHelper::getBearerToken($f3);
+          $decoded = JwtHelper::validateToken($token, $this->jwtKey);
           $body = json_decode($f3->get('BODY'), true);
           $transac_id = $body['transac_id'];
       
@@ -137,7 +119,9 @@ class transacciones_controllers extends BaseController
 
     public function listado($f3)
     {
-        $this->validarToken($f3);
+        $token = JwtHelper::getBearerToken($f3);
+        $decoded = JwtHelper::validateToken($token, $this->jwtKey);
+        
         $result = $this->m_transaccion->find();
         $items = [];
         foreach ($result as $transaccion) {
