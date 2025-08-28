@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 28-08-2025 a las 06:43:47
+-- Tiempo de generación: 28-08-2025 a las 07:42:19
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -95,6 +95,7 @@ INSERT INTO `sesiones` (`id`, `user_id`, `token`, `ultimo_uso`, `creado_en`) VAL
 
 CREATE TABLE `transacciones` (
   `id` int(11) NOT NULL,
+  `usuario_id` int(11) NOT NULL,
   `categoria_id` int(11) NOT NULL,
   `cuenta_id` int(11) NOT NULL,
   `monto` decimal(10,2) NOT NULL,
@@ -111,6 +112,7 @@ CREATE TABLE `transacciones` (
 
 CREATE TABLE `transferencias` (
   `id` int(11) NOT NULL,
+  `usuario_id` int(11) NOT NULL,
   `cuenta_id` int(11) DEFAULT NULL,
   `tipo` varchar(50) DEFAULT NULL,
   `cuenta_origen` int(11) DEFAULT NULL,
