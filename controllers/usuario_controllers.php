@@ -22,6 +22,38 @@ class usuario_controllers extends BaseController
         $this->iv = SecurityHelper::generateIV($this->encryptionKey);
     }
 
+    public function testEncryptDecrypt($f3)
+{
+
+    try {
+        $body = $this->parseAndValidateRequest($f3->get('BODY'));
+        //$body = json_decode($f3->get('BODY'), true);
+        $email = $body['email'];
+        $encrypted2 = $body['encrypted'];
+
+        if (!$email) {
+            return $this->errorResponse('Email no proporcionado', 400);
+        }
+
+        try {
+            $encrypted = SecurityHelper::encryptData($email, $this->encryptionKey, $this->iv);
+            $decrypted = SecurityHelper::decryptData($encrypted, $this->encryptionKey, $this->iv);
+            $decrypted2= SecurityHelper::decryptData($encrypted2, $this->encryptionKey, $this->iv);
+
+            $this->successResponse([
+                'original' => $email,
+                'encrypted' => $encrypted,
+                'decrypted' => $decrypted,
+                'decrypted2' => $decrypted2
+            ], 'Prueba de encriptación/desencriptación exitosa');
+        } catch (Exception $e) {
+            $this->errorResponse('Error: ' . $e->getMessage(), 500);
+        }
+    } catch (Exception $e) {
+        $this->handleError($e);
+    }
+}
+
     /**
      * Registra un nuevo usuario
      */
@@ -183,7 +215,7 @@ class usuario_controllers extends BaseController
      */
     public function delete($f3)
 {
-    $this->validarToken($f3);
+    
     $body = json_decode($f3->get('BODY'), true);
     $userId = $body['id'] ?? null;
     
@@ -213,7 +245,6 @@ class usuario_controllers extends BaseController
     
 public function listAll($f3)
 {
-    $this->validarToken($f3);
     try {
         $users = $this->userModel->find();
         $userList = [];

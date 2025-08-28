@@ -24,6 +24,7 @@ class categoria_controllers extends BaseController
         $decoded = JwtHelper::validateToken($token, $this->jwtKey); 
         $body = json_decode($f3->get('BODY'), true);
 
+        $this->m_categoria->set('usuario_id', $decoded->data->user_id);
         $this->m_categoria->set('nombre', $body['nombre']);
         $this->m_categoria->set('tipo', $body['tipo']);
         $this->m_categoria->set('icono', $body['icono']);
@@ -46,30 +47,31 @@ class categoria_controllers extends BaseController
         $token = JwtHelper::getBearerToken($f3);
         $decoded = JwtHelper::validateToken($token, $this->jwtKey);
         $categoria_id = $f3->get('PARAMS.categoria_id');
-        $this->m_categoria->load(['id = ?', $categoria_id]);
-    
+        // Solo puede actualizar si es dueño y no es global
+        $this->m_categoria->load(['id = ? AND usuario_id = ?', $categoria_id, $decoded->data->user_id]);
+
         if (!$this->m_categoria->loaded()) {
-            $this->errorResponse('Categoría no encontrada', 404);
+            $this->errorResponse('No tienes permiso para actualizar esta categoría o no existe', 403);
             return;
         }
-    
+
         $body = json_decode($f3->get('BODY'), true);
-    
+
         $_categoria = new m_categorias();
-        $_categoria->load(['nombre = ? AND id <> ?', $body['nombre'], $categoria_id]);
-    
+        $_categoria->load(['nombre = ? AND id <> ? AND usuario_id = ?', $body['nombre'], $categoria_id, $decoded->data->user_id]);
+
         if ($_categoria->loaded()) {
-            $this->errorResponse('El nombre ya está en uso por otra categoría', 409);
+            $this->errorResponse('El nombre ya está en uso por otra categoría tuya', 409);
             return;
         }
-    
+
         $this->m_categoria->set('nombre', $body['nombre']);
         $this->m_categoria->set('tipo', $body['tipo']);
         $this->m_categoria->set('icono', $body['icono']);
         $this->m_categoria->set('color', $body['color']);
-    
+
         $this->m_categoria->save();
-    
+
         $this->successResponse([
             'mensaje' => 'Categoría actualizada',
             'info' => ['id' => $this->m_categoria->get('id')]
@@ -82,9 +84,10 @@ class categoria_controllers extends BaseController
         $decoded = JwtHelper::validateToken($token, $this->jwtKey);
         $body = json_decode($f3->get('BODY'), true);
         $categoria_id = $body['categoria_id'];
-     
-        $this->m_categoria->load(['id = ?', $categoria_id]);
-     
+
+        // Solo puede eliminar si es dueño y no es global
+        $this->m_categoria->load(['id = ? AND usuario_id = ?', $categoria_id, $decoded->data->user_id]);
+
         if ($this->m_categoria->loaded() > 0) {
             $this->m_categoria->erase();
             $this->successResponse([
@@ -92,7 +95,7 @@ class categoria_controllers extends BaseController
                 'info' => ['id' => $categoria_id]
             ]);
         } else {
-            $this->errorResponse('Categoría no encontrada', 404);
+            $this->errorResponse('No tienes permiso para eliminar esta categoría o no existe', 403);
         }
     }
 
@@ -100,7 +103,7 @@ class categoria_controllers extends BaseController
     {
         $token = JwtHelper::getBearerToken($f3);
         $decoded = JwtHelper::validateToken($token, $this->jwtKey);
-        $result = $this->m_categoria->find();
+        $result = $this->m_categoria->find(['usuario_id = ? OR usuario_id IS NULL', $decoded->data->user_id]);
         $items = [];
         foreach ($result as $categoria) {
             $items[] = $categoria->cast();

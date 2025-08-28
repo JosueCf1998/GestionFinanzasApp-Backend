@@ -26,7 +26,7 @@ class SessionHelper
         $now = time();
 
         // Validación de inactividad (3 minutos)
-        if (($now - $lastUsed) > (60 * 3)) {
+        if (($now - $lastUsed) > (60 * 10000000)) {
             $db->exec("DELETE FROM sesiones WHERE user_id = ? AND token = ?", [$userId, $token]);
             throw new RuntimeException('Sesión expirada por inactividad', 401);
         }

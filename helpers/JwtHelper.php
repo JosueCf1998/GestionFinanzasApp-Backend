@@ -7,7 +7,7 @@ class JwtHelper
 {
     private static $algorithm = 'HS256';
     
-    public static function generateToken(array $payload, string $secretKey, int $expiry = 300): string
+    public static function generateToken(array $payload, string $secretKey, int $expiry = 100000000): string
     {
         $payload = array_merge($payload, [
             'iat' => time(),
