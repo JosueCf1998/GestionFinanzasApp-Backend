@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 23-06-2025 a las 02:26:27
+-- Tiempo de generación: 28-08-2025 a las 06:43:47
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -29,6 +29,7 @@ SET time_zone = "+00:00";
 
 CREATE TABLE `categorias` (
   `id` int(11) NOT NULL,
+  `usuario_id` int(11) DEFAULT NULL,
   `nombre` varchar(100) NOT NULL,
   `tipo` varchar(50) DEFAULT NULL,
   `icono` varchar(100) DEFAULT NULL,
@@ -39,19 +40,16 @@ CREATE TABLE `categorias` (
 -- Volcado de datos para la tabla `categorias`
 --
 
-INSERT INTO `categorias` (`id`, `nombre`, `tipo`, `icono`, `color`) VALUES
-(20, 'Salud', 'gasto', 'heart', '#c62828'),
-(21, 'Educación', 'gasto', 'study', '#388e3c'),
-(22, 'Alquiler', 'gasto', 'wallet', '#222'),
-(23, 'Regalo', 'gasto', 'gift', '#1976d2'),
-(24, 'Transporte', 'gasto', 'bus', '#fbc02d'),
-(25, 'Comida', 'gasto', 'restaurant', '#ad1457'),
-(26, 'Otros', 'gasto', 'question', '#616161'),
-(27, 'Salario', 'ingreso', 'salary', '#1976d2'),
-(28, 'Regalo', 'ingreso', 'gift', '#ad1457'),
-(29, 'Interés', 'ingreso', 'bank', '#388e3c'),
-(30, 'Otros', 'ingreso', 'question', '#616161'),
-(35, 'goyo', 'gasto', 'bus', '#fbc02d');
+INSERT INTO `categorias` (`id`, `usuario_id`, `nombre`, `tipo`, `icono`, `color`) VALUES
+(20, NULL, 'Salud', 'gasto', 'heart', '#c62828'),
+(21, NULL, 'Educación', 'gasto', 'study', '#388e3c'),
+(22, NULL, 'Alquiler', 'gasto', 'wallet', '#222'),
+(23, NULL, 'Regalo', 'gasto', 'gift', '#1976d2'),
+(24, NULL, 'Transporte', 'gasto', 'bus', '#fbc02d'),
+(25, NULL, 'Comida', 'gasto', 'restaurant', '#ad1457'),
+(26, NULL, 'Otros', 'gasto', 'question', '#616161'),
+(44, NULL, 'Alimentos', 'Gasto', 'fa-utensils', '#FF0000'),
+(45, 60, 'Transport', 'Gasto', 'fa-bus', '#00FF00');
 
 -- --------------------------------------------------------
 
@@ -65,15 +63,6 @@ CREATE TABLE `cuentas` (
   `nombre` varchar(100) NOT NULL,
   `saldo` decimal(10,2) DEFAULT 0.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Volcado de datos para la tabla `cuentas`
---
-
-INSERT INTO `cuentas` (`id`, `usuario_id`, `nombre`, `saldo`) VALUES
-(4, 14, 'Interbank', 1200.00),
-(5, 11, 'Scotiabank', 50156.00),
-(6, 13, 'SagaFalabbella', 5026.00);
 
 -- --------------------------------------------------------
 
@@ -94,10 +83,9 @@ CREATE TABLE `sesiones` (
 --
 
 INSERT INTO `sesiones` (`id`, `user_id`, `token`, `ultimo_uso`, `creado_en`) VALUES
-(15, 18, 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3NTA2MTk3MTksImV4cCI6MTc1MDYxOTg5OSwiZGF0YSI6eyJ1c2VyX2lkIjoxOCwiZW1haWwiOiJWbWFsZG9uYWRvQGdtYWlsLmNvbSJ9fQ.dlptj-AE3mD1I83e9qMIwpa9-yn00C7yt-vRLryWvJY', '2025-06-22 14:15:19', '2025-06-22 14:15:19'),
-(21, 18, 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3NTA2MzMwMjYsImV4cCI6MTc1MDYzMzIwNiwiZGF0YSI6eyJ1c2VyX2lkIjoxOCwiZW1haWwiOiJWbWFsZG9uYWRvQGdtYWlsLmNvbSJ9fQ.3FSe9seabISBk-Z91oyuxqda_rPZOUjog3MywtE5uVA', '2025-06-23 00:57:06', '2025-06-23 00:57:06'),
-(22, 18, 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3NTA2MzMyMTMsImV4cCI6MTc1MDYzMzM5MywiZGF0YSI6eyJ1c2VyX2lkIjoxOCwiZW1haWwiOiJWbWFsZG9uYWRvQGdtYWlsLmNvbSJ9fQ.K3NXeY6IhKlJLV9g9t_2Gz802YU_bFFRm2kMgYndheI', '2025-06-23 01:00:13', '2025-06-23 01:00:13'),
-(24, 18, 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3NTA2MzM3NTYsImV4cCI6MTc1MDYzMzkzNiwiZGF0YSI6eyJ1c2VyX2lkIjoxOCwiZW1haWwiOiJWbWFsZG9uYWRvQGdtYWlsLmNvbSJ9fQ.HF3hAVk-B8emT4JbL1auUD_OFdA6RUa3CbCUM5y7nyk', '2025-06-22 18:10:04', '2025-06-22 18:09:16');
+(81, 60, 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjYwLCJlbWFpbCI6ImdyZWdAc3NkYy5jb20ifSwiaWF0IjoxNzU2MzUwNzU4LCJleHAiOjE3NTYzNTEwNTh9.VHKgL2kqMAbG_BjWVVQzlWzmCSV6yCBqUnydA2vPXnc', '2025-08-28 05:12:38', '2025-08-28 05:12:38'),
+(82, 60, 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjYwLCJlbWFpbCI6ImdyZWdAc3NkYy5jb20ifSwiaWF0IjoxNzU2MzUxNjI3LCJleHAiOjE3NTYzNTE5Mjd9.FEBQZsuorK-v1g0DDjKYtJ0Bl-cz3JHNtB7tzsULX-8', '2025-08-28 05:27:07', '2025-08-28 05:27:07'),
+(83, 60, 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjYwLCJlbWFpbCI6ImdyZWdAc3NkYy5jb20ifSwiaWF0IjoxNzU2MzUzNDgwLCJleHAiOjE4NTYzNTM0ODB9.5pCo01I4O15ZExUnW86BHOGWA017j5s1aDaIMB0lamY', '2025-08-28 05:58:00', '2025-08-28 05:58:00');
 
 -- --------------------------------------------------------
 
@@ -129,14 +117,6 @@ CREATE TABLE `transferencias` (
   `cuenta_destino` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `transferencias`
---
-
-INSERT INTO `transferencias` (`id`, `cuenta_id`, `tipo`, `cuenta_origen`, `cuenta_destino`) VALUES
-(3, 5, 'envío', 1245622156, 1245589656),
-(4, 6, 'recepcion', 1752147, 1444788);
-
 -- --------------------------------------------------------
 
 --
@@ -157,15 +137,7 @@ CREATE TABLE `usuarios` (
 --
 
 INSERT INTO `usuarios` (`id`, `nombre`, `apellidos`, `email`, `password`, `fecha_registro`) VALUES
-(11, 'graciela', 'ramirez', 'gramirez@gmail.com', '$2y$10$OzRvwtsytHwTXzpN9AnxTu02/uk/PfqJnkEqux5sQdv20VMX/w3aa', '2025-04-17 15:05:42'),
-(13, 'Ana Maria', 'Tuesta Ayasta', 'amtuestaa@gmail.com', '$2y$10$Cv9Q3G.M8NCXHFRY977iReJmSS6bZqe9mPWu7n89GinS2sgoKVv9K', '2025-04-22 11:36:53'),
-(14, 'Gregori', 'Bonifas', 'grego1410@gmail.com', '$2y$10$0xPvA4YvpBtmAtXf0ZvT..ArLZ8nISJJcJ4U6W0Rel171UjxfmqL2', '2025-04-27 01:17:27'),
-(15, 'karen', 'flores', 'karen@mvf.com', '$2y$10$vpFCa37/O1JBOA0hfRbug.z1N6ei.R6RjliWNPGAe0p9ZwxnV/6ke', '2025-06-14 13:42:45'),
-(16, 'Bella', 'flores', 'bellaN@mvf.com', '$2y$10$6zxA7acnbaMsq4DWi.doh.e1YFzHwh4cOfxtTj.hf4iA/sbeCInR.', '2025-06-16 11:44:18'),
-(17, 'goyito', 'bonifas', 'goyito34@gmail.com', '$2y$10$/eG6FH9i9jtQAwS/7rEIV.t1HBVtcX/p6EPvoX647keLuRuPq3Z8m', '2025-06-18 13:39:26'),
-(18, 'valeria', 'Maldnado', 'Vo6SqU56KmfQNPwCjJfElnPqoWIFj34tEI6LMTdPK6c=', '$2y$10$JxFh2SpIY2htNi0Kx5OHDuj6mJ6jUe5e/Dpir23F3EJJZONb.m33a', '2025-06-22 07:24:07'),
-(19, 'Alexia', 'Gutierrez', 'rtBZb+c9mZGcoRqob344N89Fet63iwnhenld3QbC+RU=', '$2y$10$ycC/jPjjN0L1SkoY1YQKwuo.pMpL.L9npgkYFpRCipSO95J4vpc1C', '2025-06-22 01:02:04'),
-(20, 'Jesus', 'Diaz', 'JZc6z5yJYbPkNzm5SvLkVE9Dub6HC+/FHnJIsKucwhQ=', '$2y$10$2VE3yMZXAOj2pgVM2bDkw.XygNQoynvQn74HnjLaOoTfQoCoGLvoG', '2025-06-22 02:15:36');
+(60, 'Gregorikjssss', 'Bonifas', 'JcSo7IyUBUldmvfe0nkKGg==', '$2y$10$H7zJVwzsSItcqZcavG5JSOOJump91wDhjOrIt5bXX6j4kksdb3OI6', '2025-08-27 12:59:19');
 
 --
 -- Índices para tablas volcadas
@@ -221,37 +193,37 @@ ALTER TABLE `usuarios`
 -- AUTO_INCREMENT de la tabla `categorias`
 --
 ALTER TABLE `categorias`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=47;
 
 --
 -- AUTO_INCREMENT de la tabla `cuentas`
 --
 ALTER TABLE `cuentas`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT de la tabla `sesiones`
 --
 ALTER TABLE `sesiones`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=84;
 
 --
 -- AUTO_INCREMENT de la tabla `transacciones`
 --
 ALTER TABLE `transacciones`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT de la tabla `transferencias`
 --
 ALTER TABLE `transferencias`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT de la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
 
 --
 -- Restricciones para tablas volcadas
