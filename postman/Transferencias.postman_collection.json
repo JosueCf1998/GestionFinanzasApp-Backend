@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "6ffce9e4-6f08-4e5a-a73e-ed86c9e37dfb",
 		"name": "Transferencias",
-		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "36127622"
 	},
 	"item": [
@@ -20,7 +20,18 @@
 						}
 					}
 				},
-				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/crear-transferencias"
+				"url": {
+					"raw": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/crear-transferencias",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"gestion_finanzas",
+						"GestionFinanzasApp-Backend",
+						"crear-transferencias"
+					]
+				}
 			},
 			"response": []
 		},
@@ -29,7 +40,18 @@
 			"request": {
 				"method": "GET",
 				"header": [],
-				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/listado-transferencias"
+				"url": {
+					"raw": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/listado-transferencias",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"gestion_finanzas",
+						"GestionFinanzasApp-Backend",
+						"listado-transferencias"
+					]
+				}
 			},
 			"response": []
 		},
@@ -47,7 +69,19 @@
 						}
 					}
 				},
-				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/actualizar-transferencias/7"
+				"url": {
+					"raw": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/actualizar-transferencias/7",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"gestion_finanzas",
+						"GestionFinanzasApp-Backend",
+						"actualizar-transferencias",
+						"7"
+					]
+				}
 			},
 			"response": []
 		},

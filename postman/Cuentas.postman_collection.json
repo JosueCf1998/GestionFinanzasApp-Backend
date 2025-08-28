@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "cf3d5f7c-09b8-427e-bd17-f4c5b1b1ddff",
 		"name": "Cuentas",
-		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "36127622"
 	},
 	"item": [
@@ -20,7 +20,18 @@
 						}
 					}
 				},
-				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/crear-cuentas"
+				"url": {
+					"raw": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/crear-cuentas",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"gestion_finanzas",
+						"GestionFinanzasApp-Backend",
+						"crear-cuentas"
+					]
+				}
 			},
 			"response": []
 		},
@@ -28,8 +39,24 @@
 			"name": "listAll",
 			"request": {
 				"method": "GET",
-				"header": [],
-				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/listado-cuentas"
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjQxLCJlbWFpbCI6IkRhdG9zIGNvbmZpZGVuY2lhbGVzIn0sImlhdCI6MTc1NTk4OTMyOCwiZXhwIjoxNzU1OTg5NjI4fQ.JpSKO5-c3VUeiHun5LzuDlNcYHNr9ziGIFv2cO_7Vfk",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost/GestionFinanzasApp-Backend/listado-cuentas",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"GestionFinanzasApp-Backend",
+						"listado-cuentas"
+					]
+				}
 			},
 			"response": []
 		},
@@ -47,7 +74,19 @@
 						}
 					}
 				},
-				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/actualizar-cuentas/8"
+				"url": {
+					"raw": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/actualizar-cuentas/8",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"gestion_finanzas",
+						"GestionFinanzasApp-Backend",
+						"actualizar-cuentas",
+						"8"
+					]
+				}
 			},
 			"response": []
 		},

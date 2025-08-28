@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "390da344-b275-4455-82f0-7b4b56803f77",
 		"name": "Transacciones",
-		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "36127622"
 	},
 	"item": [
@@ -20,7 +20,18 @@
 						}
 					}
 				},
-				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/crear-transacciones"
+				"url": {
+					"raw": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/crear-transacciones",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"gestion_finanzas",
+						"GestionFinanzasApp-Backend",
+						"crear-transacciones"
+					]
+				}
 			},
 			"response": []
 		},
@@ -29,7 +40,18 @@
 			"request": {
 				"method": "GET",
 				"header": [],
-				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/listado-transacciones"
+				"url": {
+					"raw": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/listado-transacciones",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"gestion_finanzas",
+						"GestionFinanzasApp-Backend",
+						"listado-transacciones"
+					]
+				}
 			},
 			"response": []
 		},
@@ -47,7 +69,19 @@
 						}
 					}
 				},
-				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/actualizar-transacciones/6"
+				"url": {
+					"raw": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/actualizar-transacciones/6",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"gestion_finanzas",
+						"GestionFinanzasApp-Backend",
+						"actualizar-transacciones",
+						"6"
+					]
+				}
 			},
 			"response": []
 		},

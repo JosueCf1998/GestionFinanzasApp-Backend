@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "3834a7b4-37e6-4607-816d-de18600abac6",
 		"name": "Usuarios",
-		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "36127622"
 	},
 	"item": [
@@ -13,14 +13,24 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n  \"email\": \"zdwE1n2SheeMpeJmsEgyEw==OEEeuCRdRW2KVIGOuuhimw==TBwQRgqkDkkmCpd32oY0KoCc4l2cSu1jhxVWj0zYO1o=\",\r\n  \"password\": \"9g17upKjeeX7qaA0cqE5bA==K52Mdof+FEdoxSu+qQkZMA==k5Xy2NS5fY2hLjiR0RweYQ==\"\r\n}\r\n",
+					"raw": "{\r\n   \"email\": \"40vONKDmJ1F+SdcZYtiyjQ==580xmjMjY1oOy+ngqnSAfg==d74qr54G1oltcJ5da6ouyQ==\", \r\n  \"password\": \"U8RhxPgguUqYv5+ngGbRuQ==Q2Nu3q5y5CcDFdDAM4AyAA==ZGlaX1nbbvw7kE+kBMob33Q/cAt7FAcvrN6qJc6lBwk=\"\r\n}\r\n",
 					"options": {
 						"raw": {
 							"language": "json"
 						}
 					}
 				},
-				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/login-usuario"
+				"url": {
+					"raw": "http://localhost/GestionFinanzasApp-Backend/login-usuario",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"GestionFinanzasApp-Backend",
+						"login-usuario"
+					]
+				}
 			},
 			"response": []
 		},
@@ -31,23 +41,55 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n  \"nombre\": \"Gregori\",\r\n  \"apellidos\": \"Ramirez\",\r\n  \"email\": \"zdwE1n2SheeMpeJmsEgyEw==OEEeuCRdRW2KVIGOuuhimw==TBwQRgqkDkkmCpd32oY0KoCc4l2cSu1jhxVWj0zYO1o=\",\r\n  \"password\": \"9g17upKjeeX7qaA0cqE5bA==K52Mdof+FEdoxSu+qQkZMA==k5Xy2NS5fY2hLjiR0RweYQ==\"\r\n}\r\n",
+					"raw": "{\r\n  \"nombre\": \"Gregorikjssss\",\r\n  \"apellidos\": \"Bonifas\",\r\n  \"email\": \"40vONKDmJ1F+SdcZYtiyjQ==580xmjMjY1oOy+ngqnSAfg==d74qr54G1oltcJ5da6ouyQ==\",\r\n  \"password\": \"U8RhxPgguUqYv5+ngGbRuQ==Q2Nu3q5y5CcDFdDAM4AyAA==ZGlaX1nbbvw7kE+kBMob33Q/cAt7FAcvrN6qJc6lBwk=\"\r\n}\r\n",
 					"options": {
 						"raw": {
 							"language": "json"
 						}
 					}
 				},
-				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/crear-usuario"
+				"url": {
+					"raw": "http://localhost/GestionFinanzasApp-Backend/crear-usuario",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"GestionFinanzasApp-Backend",
+						"crear-usuario"
+					]
+				}
 			},
 			"response": []
 		},
 		{
 			"name": "listAll",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
 			"request": {
 				"method": "GET",
 				"header": [],
-				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/listado-usuario"
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost/GestionFinanzasApp-Backend/listado-usuario",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"GestionFinanzasApp-Backend",
+						"listado-usuario"
+					]
+				}
 			},
 			"response": []
 		},
@@ -65,7 +107,19 @@
 						}
 					}
 				},
-				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/actualizar-usuario/27"
+				"url": {
+					"raw": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/actualizar-usuario/27",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"gestion_finanzas",
+						"GestionFinanzasApp-Backend",
+						"actualizar-usuario",
+						"27"
+					]
+				}
 			},
 			"response": []
 		},
@@ -79,7 +133,7 @@
 				"header": [
 					{
 						"key": "Authorization",
-						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjI2LCJlbWFpbCI6Imx1aXMxMjNAZ21haWwuY29tIn0sImlhdCI6MTc1MzA3NDA0NiwiZXhwIjoxNzUzMDc0MjI2fQ.aDTy1bjAghG6aAj76OoDxnnMbOWpj39Z6jvzDv-0SQI",
+						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjQxLCJlbWFpbCI6IkRhdG9zIGNvbmZpZGVuY2lhbGVzIn0sImlhdCI6MTc1NTk4ODQ4NiwiZXhwIjoxNzU1OTg4Nzg2fQ.FbJ0ngE0nwLBfHKLvh122CfemwWuuD8Xk3eTK-dQAT4",
 						"type": "text"
 					}
 				],
@@ -92,7 +146,17 @@
 						}
 					}
 				},
-				"url": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/perfil-usuario"
+				"url": {
+					"raw": "http://localhost/GestionFinanzasApp-Backend/perfil-usuario",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"GestionFinanzasApp-Backend",
+						"perfil-usuario"
+					]
+				}
 			},
 			"response": []
 		},
@@ -110,7 +174,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"id\": \"26\"\r\n}",
+					"raw": "{\r\n    \"id\": \"59\"\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -118,13 +182,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/eliminar-usuario",
+					"raw": "http://localhost/GestionFinanzasApp-Backend/eliminar-usuario",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
 					"path": [
-						"gestion_finanzas",
 						"GestionFinanzasApp-Backend",
 						"eliminar-usuario"
 					],
@@ -134,6 +197,34 @@
 							"value": "26",
 							"disabled": true
 						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "test",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{ \r\n    \"email\": \"tucorreo@dominio.com\",\r\n\"encrypted\":\"bVMhPKZsRfnWJcfw9RomOhj3zqAYhBCJFDRELX7wxAM=\" }",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost/GestionFinanzasApp-Backend/test",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"GestionFinanzasApp-Backend",
+						"test"
 					]
 				}
 			},
