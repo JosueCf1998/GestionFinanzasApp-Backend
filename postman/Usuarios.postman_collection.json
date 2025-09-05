@@ -41,7 +41,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n  \"nombre\": \"Gregorikjssss\",\r\n  \"apellidos\": \"Bonifas\",\r\n  \"email\": \"40vONKDmJ1F+SdcZYtiyjQ==580xmjMjY1oOy+ngqnSAfg==d74qr54G1oltcJ5da6ouyQ==\",\r\n  \"password\": \"U8RhxPgguUqYv5+ngGbRuQ==Q2Nu3q5y5CcDFdDAM4AyAA==ZGlaX1nbbvw7kE+kBMob33Q/cAt7FAcvrN6qJc6lBwk=\"\r\n}\r\n",
+					"raw": "{\r\n  \"nombre\": \"josue\",\r\n  \"apellidos\": \"coronel\",\r\n  \"email\": \"d0CDuoJ+4+EFouW59MIqCA==kG+297r796j/Dg7X496KtQ==yWVx3vL+kz6vTwLpmhzG1yngGZKzR2e1VgSYR3hZpaA=\",\r\n  \"password\": \"kFVg5ygqQjTIzbzpoFp3vA==4Bk/rhm4IGSybhCUA1ibKA==LvquSdaT6DE7VfysFuVXdQ==\"\r\n}\r\n",
 					"options": {
 						"raw": {
 							"language": "json"
