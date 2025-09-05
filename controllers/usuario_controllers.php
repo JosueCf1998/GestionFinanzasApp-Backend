@@ -189,7 +189,6 @@ class usuario_controllers extends BaseController
      */
     public function update($f3)
     {
-        $this->validateToken($f3);
         $userId = $f3->get('PARAMS.user_id');
         
         try {
@@ -209,6 +208,54 @@ class usuario_controllers extends BaseController
             $this->handleError($e);
         }
     }
+
+    public function forgotPassword($f3)
+{
+    $this->validateRequestMethod('POST');
+
+    try {
+        $requestData = $this->parseAndValidateRequest($f3->get('BODY'));
+
+        // Desencriptar email y nueva contraseña
+        $emailDecrypt = AesDecryptor::decrypt(
+            $requestData['email'],
+            getenv('ENCRYPTION_PASSWORD') ?: "TuClaveSuperSecreta@2024"
+        );
+
+        $newPasswordDecrypt = AesDecryptor::decrypt(
+            $requestData['new_password'],
+            getenv('ENCRYPTION_PASSWORD') ?: "TuClaveSuperSecreta@2024"
+        );
+
+        // Buscar usuario por email encriptado
+        $emailEncrypted = SecurityHelper::encryptData($emailDecrypt, $this->encryptionKey, $this->iv);
+        $this->userModel->load(['email = ?', $emailEncrypted]);
+
+        if (!$this->userModel->loaded()) {
+            throw new RuntimeException('Usuario no encontrado con ese email', 404);
+        }
+
+        // Validar que la nueva contraseña no sea igual a la anterior
+        if (password_verify($newPasswordDecrypt, $this->userModel->password)) {
+            throw new RuntimeException('La nueva contraseña no puede ser igual a la anterior', 400);
+        }
+
+        // Actualizar contraseña
+        $this->userModel->set('password', password_hash($newPasswordDecrypt, PASSWORD_BCRYPT));
+
+        if (!$this->userModel->save()) {
+            throw new RuntimeException('Error al actualizar la contraseña', 500);
+        }
+
+        // Respuesta de éxito
+        $this->successResponse([
+            'email' => $emailDecrypt
+        ], 'Contraseña actualizada correctamente');
+
+    } catch (Exception $e) {
+        $this->handleError($e);
+    }
+}
 
     /**
      * Elimina un usuario
