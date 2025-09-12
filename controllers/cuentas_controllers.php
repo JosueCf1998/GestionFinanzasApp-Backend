@@ -34,7 +34,7 @@ class cuentas_controllers extends BaseController
             $this->successResponse([
                 'mensaje' => 'Cuenta creada correctamente',
                 'info' => [
-                    
+                    'id' => $this->m_cuenta->get('id')
                 ]
             ]);
         } else {
