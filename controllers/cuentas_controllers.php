@@ -27,12 +27,14 @@ class cuentas_controllers extends BaseController
         $this->m_cuenta->set('usuario_id', $decoded->data->user_id);
         $this->m_cuenta->set('nombre', $body['nombre']);
         $this->m_cuenta->set('saldo', $body['saldo']);
+        $this->m_cuenta->set('icon', $body['icon']);
+        $this->m_cuenta->set('color', $body['color']);
 
         if ($this->m_cuenta->save()) {
             $this->successResponse([
                 'mensaje' => 'Cuenta creada correctamente',
                 'info' => [
-                    'id' => $this->m_cuenta->get('id')
+                    
                 ]
             ]);
         } else {
