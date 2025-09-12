@@ -105,7 +105,12 @@ class cuentas_controllers extends BaseController
         $result = $this->m_cuenta->find(['usuario_id = ?', $decoded->data->user_id]);
         $items = [];
         foreach ($result as $cuenta) {
-            $items[] = $cuenta->cast();
+            $items[] = [
+                'name' => $cuenta->nombre,
+                'amount' => $cuenta->saldo,
+                'icon' => $cuenta->icon,
+                'color' => $cuenta->color
+            ];
         }
         if (count($items) > 0) {
             $this->successResponse(['items' => $items, 'Total' => count($items)]);
