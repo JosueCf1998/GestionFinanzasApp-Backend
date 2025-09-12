@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 28-08-2025 a las 07:42:19
+-- Tiempo de generación: 12-09-2025 a las 08:17:19
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -49,7 +49,8 @@ INSERT INTO `categorias` (`id`, `usuario_id`, `nombre`, `tipo`, `icono`, `color`
 (25, NULL, 'Comida', 'gasto', 'restaurant', '#ad1457'),
 (26, NULL, 'Otros', 'gasto', 'question', '#616161'),
 (44, NULL, 'Alimentos', 'Gasto', 'fa-utensils', '#FF0000'),
-(45, 60, 'Transport', 'Gasto', 'fa-bus', '#00FF00');
+(45, 60, 'Transport', 'Gasto', 'fa-bus', '#00FF00'),
+(47, 61, 'Ropa', 'Gasto', 'fa-utensils', '#FF0000');
 
 -- --------------------------------------------------------
 
@@ -61,8 +62,17 @@ CREATE TABLE `cuentas` (
   `id` int(11) NOT NULL,
   `usuario_id` int(11) NOT NULL,
   `nombre` varchar(100) NOT NULL,
-  `saldo` decimal(10,2) DEFAULT 0.00
+  `saldo` decimal(10,2) DEFAULT 0.00,
+  `icon` varchar(100) NOT NULL,
+  `color` varchar(100) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `cuentas`
+--
+
+INSERT INTO `cuentas` (`id`, `usuario_id`, `nombre`, `saldo`, `icon`, `color`) VALUES
+(12, 62, 'Cuenta Credito', 8500.00, '', '');
 
 -- --------------------------------------------------------
 
@@ -85,7 +95,10 @@ CREATE TABLE `sesiones` (
 INSERT INTO `sesiones` (`id`, `user_id`, `token`, `ultimo_uso`, `creado_en`) VALUES
 (81, 60, 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjYwLCJlbWFpbCI6ImdyZWdAc3NkYy5jb20ifSwiaWF0IjoxNzU2MzUwNzU4LCJleHAiOjE3NTYzNTEwNTh9.VHKgL2kqMAbG_BjWVVQzlWzmCSV6yCBqUnydA2vPXnc', '2025-08-28 05:12:38', '2025-08-28 05:12:38'),
 (82, 60, 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjYwLCJlbWFpbCI6ImdyZWdAc3NkYy5jb20ifSwiaWF0IjoxNzU2MzUxNjI3LCJleHAiOjE3NTYzNTE5Mjd9.FEBQZsuorK-v1g0DDjKYtJ0Bl-cz3JHNtB7tzsULX-8', '2025-08-28 05:27:07', '2025-08-28 05:27:07'),
-(83, 60, 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjYwLCJlbWFpbCI6ImdyZWdAc3NkYy5jb20ifSwiaWF0IjoxNzU2MzUzNDgwLCJleHAiOjE4NTYzNTM0ODB9.5pCo01I4O15ZExUnW86BHOGWA017j5s1aDaIMB0lamY', '2025-08-28 05:58:00', '2025-08-28 05:58:00');
+(83, 60, 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjYwLCJlbWFpbCI6ImdyZWdAc3NkYy5jb20ifSwiaWF0IjoxNzU2MzUzNDgwLCJleHAiOjE4NTYzNTM0ODB9.5pCo01I4O15ZExUnW86BHOGWA017j5s1aDaIMB0lamY', '2025-08-28 05:58:00', '2025-08-28 05:58:00'),
+(84, 61, 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjYxLCJlbWFpbCI6Impvc3VlMTIzQGdtYWlsLmNvbSJ9LCJpYXQiOjE3NTY3ODc0MzAsImV4cCI6MTg1Njc4NzQzMH0.L4qAvaZTblRbROlVJAwuJzne6vVe5M7mDCZI8j0iylE', '2025-09-02 06:30:30', '2025-09-02 06:30:30'),
+(85, 60, 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjYwLCJlbWFpbCI6ImdyZWdAc3NkYy5jb20ifSwiaWF0IjoxNzU2Nzg3NjEzLCJleHAiOjE4NTY3ODc2MTN9.O_lwk3gakQDoWuq1-UgT66LsB8JbwwRDWI9E0y7b1Z0', '2025-09-02 06:33:33', '2025-09-02 06:33:33'),
+(86, 62, 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjYyLCJlbWFpbCI6Imx1aXNnQGdtYWlsLmNvbSJ9LCJpYXQiOjE3NTc2NTYwMzYsImV4cCI6MTg1NzY1NjAzNn0.jwI6n_qQrUqUfOu7nBqGm7f63BnhFmjfIa3sIGjkbaA', '2025-09-12 07:47:16', '2025-09-12 07:47:16');
 
 -- --------------------------------------------------------
 
@@ -139,7 +152,9 @@ CREATE TABLE `usuarios` (
 --
 
 INSERT INTO `usuarios` (`id`, `nombre`, `apellidos`, `email`, `password`, `fecha_registro`) VALUES
-(60, 'Gregorikjssss', 'Bonifas', 'JcSo7IyUBUldmvfe0nkKGg==', '$2y$10$H7zJVwzsSItcqZcavG5JSOOJump91wDhjOrIt5bXX6j4kksdb3OI6', '2025-08-27 12:59:19');
+(60, 'Alexia', 'Gutierrez', 'DeA4CPmrd9wF5B2GuXUA2xPp0rzfnHaq1cvwKBYhOgg=', '$2y$10$H7zJVwzsSItcqZcavG5JSOOJump91wDhjOrIt5bXX6j4kksdb3OI6', '2025-08-27 12:59:19'),
+(61, 'josue', 'coronel', 'F5liRgWdUB2gbrubdEtIcynYHrGvZPsAMJxZDGBfTus=', '$2y$10$m3sh6nKTKGVzjNIrEwSMvuT6a4vfekw5I5MoOhq/yvIc.dCFWDPeq', '2025-09-02 11:29:35'),
+(62, 'luisg', 'coronel', 'C2iNdtf/xkI4UOURmSSDEg==', '$2y$10$7Xy89WIakLVdAc0WMOOoduZdEqr984SBTovjzOmNsWCAcO5fzn5fe', '2025-09-12 12:45:33');
 
 --
 -- Índices para tablas volcadas
@@ -195,19 +210,19 @@ ALTER TABLE `usuarios`
 -- AUTO_INCREMENT de la tabla `categorias`
 --
 ALTER TABLE `categorias`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=47;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
 
 --
 -- AUTO_INCREMENT de la tabla `cuentas`
 --
 ALTER TABLE `cuentas`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT de la tabla `sesiones`
 --
 ALTER TABLE `sesiones`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=84;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=87;
 
 --
 -- AUTO_INCREMENT de la tabla `transacciones`
@@ -225,7 +240,7 @@ ALTER TABLE `transferencias`
 -- AUTO_INCREMENT de la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=63;
 
 --
 -- Restricciones para tablas volcadas
