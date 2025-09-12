@@ -76,9 +76,7 @@ class usuario_controllers extends BaseController
             $this->prepareNewUser($requestData, $emailDecrypt, $passwordDecrypt);
             
             if ($this->userModel->save()) {
-                $this->successResponse([
-                    'id' => $this->userModel->get('id'),
-                ], 'Usuario registrado exitosamente');
+                $this->successResponse([], 'Usuario registrado exitosamente');
             } else {
                 throw new RuntimeException('Error al guardar el usuario');
             }
@@ -248,9 +246,7 @@ class usuario_controllers extends BaseController
         }
 
         // Respuesta de éxito
-        $this->successResponse([
-            'email' => $emailDecrypt
-        ], 'Contraseña actualizada correctamente');
+        $this->successResponse([], 'Contraseña actualizada correctamente');
 
     } catch (Exception $e) {
         $this->handleError($e);
