@@ -154,9 +154,6 @@ class usuario_controllers extends BaseController
         // Respuesta
         $this->successResponse([
             'token' => $token,
-            'id' => $usuarioEncontrado->id,        // 👈 también aquí
-            'name' => $usuarioEncontrado->nombre,  // 👈 usar nombre del encontrado
-            'email' => $emailDecrypt
         ], 'Login exitoso');
         
     } catch (Exception $e) {

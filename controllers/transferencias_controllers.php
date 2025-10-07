@@ -24,11 +24,14 @@ class transferencias_controllers extends BaseController
         $decoded = JwtHelper::validateToken($token, $this->jwtKey); 
         $body = json_decode($f3->get('BODY'), true);
 
-        $this->m_transferencia->set('usuario_id', $decoded->data->user_id);
-        $this->m_transferencia->set('cuenta_id', $body['cuenta_id']);
-        $this->m_transferencia->set('tipo', $body['tipo']);
-        $this->m_transferencia->set('cuenta_origen', $body['cuenta_origen']);
-        $this->m_transferencia->set('cuenta_destino', $body['cuenta_destino']);
+    $this->m_transferencia->set('usuario_id', $decoded->data->user_id);
+    $this->m_transferencia->set('fecha', date('Y-m-d H:i:s'));
+    $this->m_transferencia->set('cuenta_id_destino', $body['cuenta_id_destino']);
+    $this->m_transferencia->set('cuenta_id_origen', $body['cuenta_id_origen']);
+    $this->m_transferencia->set('monto', $body['monto']);
+    $this->m_transferencia->set('comentario', $body['comentario']);
+
+    
 
         if ($this->m_transferencia->save()) {
             $this->successResponse([
@@ -46,7 +49,8 @@ class transferencias_controllers extends BaseController
     {
         $token = JwtHelper::getBearerToken($f3);
         $decoded = JwtHelper::validateToken($token, $this->jwtKey);
-        $transf_id = $f3->get('PARAMS.transf_id');
+        $body = json_decode($f3->get('BODY'), true);
+        $transf_id = $body['transf_id'];
         // Solo puede actualizar si es dueño
         $this->m_transferencia->load(['id = ? AND usuario_id = ?', $transf_id, $decoded->data->user_id]);
 
@@ -54,24 +58,12 @@ class transferencias_controllers extends BaseController
             $this->errorResponse('No tienes permiso para actualizar esta transferencia o no existe', 403);
             return;
         }
+        $this->m_transferencia->set('fecha', date('Y-m-d H:i:s'));
+        $this->m_transferencia->set('cuenta_id_destino', $body['cuenta_id_destino']);
+        $this->m_transferencia->set('cuenta_id_origen', $body['cuenta_id_origen']);
+        $this->m_transferencia->set('monto', $body['monto']);
+        $this->m_transferencia->set('comentario', $body['comentario']);
 
-        $body = json_decode($f3->get('BODY'), true);
-
-        $_transferencia = new m_transferencias();
-        $_transferencia->load(['tipo = ? AND id <> ? AND usuario_id = ?', $body['tipo'], $transf_id, $decoded->data->user_id]);
-
-        if ($_transferencia->loaded()) {
-            $this->errorResponse(
-                'Registro no se pudo modificar debido a que el tipo se encuentra en uso por otra transferencia tuya',
-                409
-            );
-            return;
-        }
-
-        $this->m_transferencia->set('cuenta_id', $body['cuenta_id']);
-        $this->m_transferencia->set('tipo', $body['tipo']);
-        $this->m_transferencia->set('cuenta_origen', $body['cuenta_origen']);
-        $this->m_transferencia->set('cuenta_destino', $body['cuenta_destino']);
 
         $this->m_transferencia->save();
 

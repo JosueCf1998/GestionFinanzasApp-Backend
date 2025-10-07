@@ -24,6 +24,14 @@ class cuentas_controllers extends BaseController
         $decoded = JwtHelper::validateToken($token, $this->jwtKey); 
         $body = json_decode($f3->get('BODY'), true);
 
+        // Validar que no exista otra cuenta con el mismo nombre para el usuario
+        $_cuenta = new m_cuentas();
+        $_cuenta->load(['nombre = ? AND usuario_id = ?', $body['nombre'], $decoded->data->user_id]);
+        if ($_cuenta->loaded()) {
+            $this->errorResponse('Ya existe una cuenta con ese nombre para este usuario', 409);
+            return;
+        }
+
         $this->m_cuenta->set('usuario_id', $decoded->data->user_id);
         $this->m_cuenta->set('nombre', $body['nombre']);
         $this->m_cuenta->set('saldo', $body['saldo']);
@@ -34,7 +42,6 @@ class cuentas_controllers extends BaseController
             $this->successResponse([
                 'mensaje' => 'Cuenta creada correctamente',
                 'info' => [
-                    'id' => $this->m_cuenta->get('id')
                 ]
             ]);
         } else {
@@ -46,7 +53,8 @@ class cuentas_controllers extends BaseController
     {   
         $token = JwtHelper::getBearerToken($f3);
         $decoded = JwtHelper::validateToken($token, $this->jwtKey);
-        $cuenta_id = $f3->get('PARAMS.cuenta_id');
+        $body = json_decode($f3->get('BODY'), true);
+        $cuenta_id = $body['cuenta_id'];
         // Solo puede actualizar si es dueño
         $this->m_cuenta->load(['id = ? AND usuario_id = ?', $cuenta_id, $decoded->data->user_id]);
 
@@ -54,8 +62,6 @@ class cuentas_controllers extends BaseController
             $this->errorResponse('No tienes permiso para actualizar esta cuenta o no existe', 403);
             return;
         }
-
-        $body = json_decode($f3->get('BODY'), true);
 
         $_cuenta = new m_cuentas();
         $_cuenta->load(['nombre = ? AND id <> ? AND usuario_id = ?', $body['nombre'], $cuenta_id, $decoded->data->user_id]);
@@ -108,6 +114,7 @@ class cuentas_controllers extends BaseController
         $items = [];
         foreach ($result as $cuenta) {
             $items[] = [
+                'id' => $cuenta->id,
                 'name' => $cuenta->nombre,
                 'amount' => $cuenta->saldo,
                 'icon' => $cuenta->icon,
