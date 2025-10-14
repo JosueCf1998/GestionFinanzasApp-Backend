@@ -10,10 +10,16 @@
 			"name": "register",
 			"request": {
 				"method": "POST",
-				"header": [],
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjY0LCJlbWFpbCI6ImdveWl0bzE0MTBAZ21haWwuY29tIn0sImlhdCI6MTc1OTgwOTQ0NywiZXhwIjoxODU5ODA5NDQ3fQ.GYCMeVxEEZItpShIaiprECz38TK7EyerVE07WXZQhHA",
+						"type": "text"
+					}
+				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n  \"cuenta_id\": 8,\r\n  \"tipo\": \"envio\",\r\n  \"cuenta_origen\": \"11554646655\",\r\n  \"cuenta_destino\": \"02646546444\"\r\n}",
+					"raw": "{\r\n  \"fecha\":\"2018-10-02\",\r\n  \"cuenta_id_origen\": 20,\r\n  \"cuenta_id_destino\": 19,\r\n  \"monto\": 150.75,\r\n  \"comentario\": \"Transferencia de prueba\"\r\n}\r\n",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -21,15 +27,14 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/crear-transferencias",
+					"raw": "http://localhost/GestionFinanzasApp-Backend/create-transfers",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
 					"path": [
-						"gestion_finanzas",
 						"GestionFinanzasApp-Backend",
-						"crear-transferencias"
+						"create-transfers"
 					]
 				}
 			},
@@ -39,17 +44,22 @@
 			"name": "listAll",
 			"request": {
 				"method": "GET",
-				"header": [],
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjY0LCJlbWFpbCI6ImdveWl0bzE0MTBAZ21haWwuY29tIn0sImlhdCI6MTc1OTgwOTQ0NywiZXhwIjoxODU5ODA5NDQ3fQ.GYCMeVxEEZItpShIaiprECz38TK7EyerVE07WXZQhHA",
+						"type": "text"
+					}
+				],
 				"url": {
-					"raw": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/listado-transferencias",
+					"raw": "http://localhost/GestionFinanzasApp-Backend/list-transfers",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
 					"path": [
-						"gestion_finanzas",
 						"GestionFinanzasApp-Backend",
-						"listado-transferencias"
+						"list-transfers"
 					]
 				}
 			},
@@ -59,10 +69,16 @@
 			"name": "update",
 			"request": {
 				"method": "POST",
-				"header": [],
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjY0LCJlbWFpbCI6ImdveWl0bzE0MTBAZ21haWwuY29tIn0sImlhdCI6MTc1OTgwOTQ0NywiZXhwIjoxODU5ODA5NDQ3fQ.GYCMeVxEEZItpShIaiprECz38TK7EyerVE07WXZQhHA",
+						"type": "text"
+					}
+				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n  \"cuenta_id\": 8,\r\n  \"tipo\": \"Recibido\",\r\n  \"cuenta_origen\": \"115555246655\",\r\n  \"cuenta_destino\": \"56202646546444\"\r\n}",
+					"raw": "{\r\n  \"transf_id\": 15,\r\n  \"fecha\":\"2016-10-20\",\r\n  \"cuenta_id_origen\": 20,\r\n  \"cuenta_id_destino\": 19,\r\n  \"monto\": 1410.75,\r\n  \"comentario\": \"Transferencia de prueba\"\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -70,16 +86,14 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/actualizar-transferencias/7",
+					"raw": "http://localhost/GestionFinanzasApp-Backend/update-transfers",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
 					"path": [
-						"gestion_finanzas",
 						"GestionFinanzasApp-Backend",
-						"actualizar-transferencias",
-						"7"
+						"update-transfers"
 					]
 				}
 			},
@@ -92,14 +106,13 @@
 				"header": [
 					{
 						"key": "Authorization",
-						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjI2LCJlbWFpbCI6Imx1aXMxMjNAZ21haWwuY29tIn0sImlhdCI6MTc1MzA3NDA0NiwiZXhwIjoxNzUzMDc0MjI2fQ.aDTy1bjAghG6aAj76OoDxnnMbOWpj39Z6jvzDv-0SQI",
-						"type": "text",
-						"disabled": true
+						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjY0LCJlbWFpbCI6ImdveWl0bzE0MTBAZ21haWwuY29tIn0sImlhdCI6MTc1OTgwOTQ0NywiZXhwIjoxODU5ODA5NDQ3fQ.GYCMeVxEEZItpShIaiprECz38TK7EyerVE07WXZQhHA",
+						"type": "text"
 					}
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n  \"transf_id\": 7\r\n}",
+					"raw": "{\r\n  \"transf_id\": 13\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -107,15 +120,14 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/eliminar-transferencias",
+					"raw": "http://localhost/GestionFinanzasApp-Backend/delete-transfers",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
 					"path": [
-						"gestion_finanzas",
 						"GestionFinanzasApp-Backend",
-						"eliminar-transferencias"
+						"delete-transfers"
 					],
 					"query": [
 						{

@@ -27,6 +27,7 @@ class transacciones_controllers extends BaseController
         $this->m_transaccion->set('usuario_id', $decoded->data->user_id);
         $this->m_transaccion->set('categoria_id', $body['categoria_id']);
         $this->m_transaccion->set('cuenta_id', $body['cuenta_id']);
+        $this->m_transaccion->set('fecha', $body['fecha']);
         $this->m_transaccion->set('monto', $body['monto']);
         $this->m_transaccion->set('tipo', $body['tipo']);
         $this->m_transaccion->set('descripcion', $body['descripcion']);
@@ -47,7 +48,8 @@ class transacciones_controllers extends BaseController
     {
         $token = JwtHelper::getBearerToken($f3);
         $decoded = JwtHelper::validateToken($token, $this->jwtKey);
-        $transac_id = $f3->get('PARAMS.transac_id');
+        $body = json_decode($f3->get('BODY'), true);
+        $transac_id = $body['transac_id'];
         // Solo puede actualizar si es dueño
         $this->m_transaccion->load(['id = ? AND usuario_id = ?', $transac_id, $decoded->data->user_id]);
 
@@ -56,21 +58,9 @@ class transacciones_controllers extends BaseController
             return;
         }
 
-        $body = json_decode($f3->get('BODY'), true);
-
-        $_transac = new m_transacciones();
-        $_transac->load(['tipo = ? AND id <> ? AND usuario_id = ?', $body['tipo'], $transac_id, $decoded->data->user_id]);
-
-        if ($_transac->loaded()) {
-            $this->errorResponse(
-                'Registro no se pudo modificar debido a que el tipo se encuentra en uso por otra transacción tuya',
-                409
-            );
-            return;
-        }
-
         $this->m_transaccion->set('categoria_id', $body['categoria_id']);
         $this->m_transaccion->set('cuenta_id', $body['cuenta_id']);
+        $this->m_transaccion->set('fecha', $body['fecha']);
         $this->m_transaccion->set('monto', $body['monto']);
         $this->m_transaccion->set('tipo', $body['tipo']);
         $this->m_transaccion->set('descripcion', $body['descripcion']);
@@ -108,16 +98,21 @@ class transacciones_controllers extends BaseController
     {
         $token = JwtHelper::getBearerToken($f3);
         $decoded = JwtHelper::validateToken($token, $this->jwtKey);
-        // Solo listar transacciones del usuario autenticado
+    
         $result = $this->m_transaccion->find(['usuario_id = ?', $decoded->data->user_id]);
         $items = [];
+    
         foreach ($result as $transaccion) {
             $items[] = $transaccion->cast();
         }
-        if (count($items) > 0) {
-            $this->successResponse(['items' => $items, 'Total' => count($items)]);
-        } else {
-            $this->errorResponse('Aún no hay registros que mostrar', 404, ['items' => [], 'Total' => 0]);
-        }
+    
+        $this->successResponse([
+            'items' => $items,
+            'Total' => count($items),
+            'mensaje' => count($items) > 0 
+                ? 'Listado obtenido correctamente' 
+                : 'No hay registros que mostrar'
+        ]);
     }
+
 }

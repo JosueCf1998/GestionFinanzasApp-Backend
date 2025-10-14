@@ -13,13 +13,13 @@
 				"header": [
 					{
 						"key": "Authorization",
-						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjYwLCJlbWFpbCI6ImdyZWdAc3NkYy5jb20ifSwiaWF0IjoxNzU2MzUzNDgwLCJleHAiOjE4NTYzNTM0ODB9.5pCo01I4O15ZExUnW86BHOGWA017j5s1aDaIMB0lamY",
+						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjY0LCJlbWFpbCI6ImdveWl0bzE0MTBAZ21haWwuY29tIn0sImlhdCI6MTc1OTgwOTQ0NywiZXhwIjoxODU5ODA5NDQ3fQ.GYCMeVxEEZItpShIaiprECz38TK7EyerVE07WXZQhHA",
 						"type": "text"
 					}
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n  \"nombre\": \"Pension\",\r\n  \"tipo\": \"Gasto\",\r\n  \"icono\": \"fa-utensils\",\r\n  \"color\": \"#FF0000\"\r\n}\r\n\r\n",
+					"raw": "{\r\n  \"nombre\": \"Ropa\",\r\n  \"tipo\": \"Gasto\",\r\n  \"icono\": \"fa-utensils\",\r\n  \"color\": \"#FF0000\"\r\n}\r\n\r\n",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -27,14 +27,14 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost/GestionFinanzasApp-Backend/crear-categoria",
+					"raw": "http://localhost/GestionFinanzasApp-Backend/create-category",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
 					"path": [
 						"GestionFinanzasApp-Backend",
-						"crear-categoria"
+						"create-category"
 					]
 				}
 			},
@@ -47,19 +47,19 @@
 				"header": [
 					{
 						"key": "Authorization",
-						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjYwLCJlbWFpbCI6ImdyZWdAc3NkYy5jb20ifSwiaWF0IjoxNzU2MzUzNDgwLCJleHAiOjE4NTYzNTM0ODB9.5pCo01I4O15ZExUnW86BHOGWA017j5s1aDaIMB0lamY",
+						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjYwLCJlbWFpbCI6ImdyZWdAc3NkYy5jb20ifSwiaWF0IjoxNzU2Nzg3NjEzLCJleHAiOjE4NTY3ODc2MTN9.O_lwk3gakQDoWuq1-UgT66LsB8JbwwRDWI9E0y7b1Z0",
 						"type": "text"
 					}
 				],
 				"url": {
-					"raw": "http://localhost/GestionFinanzasApp-Backend/listado-categoria",
+					"raw": "http://localhost/GestionFinanzasApp-Backend/list-category",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
 					"path": [
 						"GestionFinanzasApp-Backend",
-						"listado-categoria"
+						"list-category"
 					]
 				}
 			},
@@ -121,14 +121,14 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost/GestionFinanzasApp-Backend/eliminar-categoria",
+					"raw": "http://localhost/GestionFinanzasApp-Backend/delete-category",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
 					"path": [
 						"GestionFinanzasApp-Backend",
-						"eliminar-categoria"
+						"delete-category"
 					],
 					"query": [
 						{

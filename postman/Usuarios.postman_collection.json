@@ -13,7 +13,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n   \"email\": \"40vONKDmJ1F+SdcZYtiyjQ==580xmjMjY1oOy+ngqnSAfg==d74qr54G1oltcJ5da6ouyQ==\", \r\n  \"password\": \"U8RhxPgguUqYv5+ngGbRuQ==Q2Nu3q5y5CcDFdDAM4AyAA==ZGlaX1nbbvw7kE+kBMob33Q/cAt7FAcvrN6qJc6lBwk=\"\r\n}\r\n",
+					"raw": "{\r\n   \"email\": \"ImgieXPfou9OmBECjLsKYQ==OAZ2V7HZTql6Y1QhoUJHag==XJBNFosApH1HWtexigz4UW8xdUzhUP8ZJ6W9x9Ia2IE=\", \r\n  \"password\": \"XJbq9LbhARAw/ph6kv+lcg==jVFH2t0f4e62gHaiJXzzVg==qQ800j/eN2AN//GI1gRGYw==\"\r\n}\r\n",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -21,14 +21,14 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost/GestionFinanzasApp-Backend/login-usuario",
+					"raw": "http://localhost/GestionFinanzasApp-Backend/login-user",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
 					"path": [
 						"GestionFinanzasApp-Backend",
-						"login-usuario"
+						"login-user"
 					]
 				}
 			},
@@ -41,7 +41,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n  \"nombre\": \"josue\",\r\n  \"apellidos\": \"coronel\",\r\n  \"email\": \"d0CDuoJ+4+EFouW59MIqCA==kG+297r796j/Dg7X496KtQ==yWVx3vL+kz6vTwLpmhzG1yngGZKzR2e1VgSYR3hZpaA=\",\r\n  \"password\": \"kFVg5ygqQjTIzbzpoFp3vA==4Bk/rhm4IGSybhCUA1ibKA==LvquSdaT6DE7VfysFuVXdQ==\"\r\n}\r\n",
+					"raw": "{\r\n  \"nombre\": \"Goyito\",\r\n  \"apellidos\": \"Bonifas\",\r\n  \"email\": \"ImgieXPfou9OmBECjLsKYQ==OAZ2V7HZTql6Y1QhoUJHag==XJBNFosApH1HWtexigz4UW8xdUzhUP8ZJ6W9x9Ia2IE=\",\r\n  \"password\": \"XJbq9LbhARAw/ph6kv+lcg==jVFH2t0f4e62gHaiJXzzVg==qQ800j/eN2AN//GI1gRGYw==\"\r\n}\r\n",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -49,14 +49,14 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost/GestionFinanzasApp-Backend/crear-usuario",
+					"raw": "http://localhost/GestionFinanzasApp-Backend/create-user",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
 					"path": [
 						"GestionFinanzasApp-Backend",
-						"crear-usuario"
+						"create-user"
 					]
 				}
 			},
@@ -80,14 +80,14 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost/GestionFinanzasApp-Backend/listado-usuario",
+					"raw": "http://localhost/GestionFinanzasApp-Backend/list-user",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
 					"path": [
 						"GestionFinanzasApp-Backend",
-						"listado-usuario"
+						"list-user"
 					]
 				}
 			},
@@ -108,16 +108,15 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/actualizar-usuario/27",
+					"raw": "http://localhost/GestionFinanzasApp-Backend/update-user/60",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
 					"path": [
-						"gestion_finanzas",
 						"GestionFinanzasApp-Backend",
-						"actualizar-usuario",
-						"27"
+						"update-user",
+						"60"
 					]
 				}
 			},
@@ -182,14 +181,14 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost/GestionFinanzasApp-Backend/eliminar-usuario",
+					"raw": "http://localhost/GestionFinanzasApp-Backend/dalete-user",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
 					"path": [
 						"GestionFinanzasApp-Backend",
-						"eliminar-usuario"
+						"dalete-user"
 					],
 					"query": [
 						{
@@ -225,6 +224,29 @@
 					"path": [
 						"GestionFinanzasApp-Backend",
 						"test"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "forget-password",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"email\": \"d0CDuoJ+4+EFouW59MIqCA==kG+297r796j/Dg7X496KtQ==yWVx3vL+kz6vTwLpmhzG1yngGZKzR2e1VgSYR3hZpaA=\",\r\n  \"new_password\": \"rPzA5++yp3ZyuUten01n7w==JL76+hG+33YjZpldABdi4g==jyODzUFXcIW4DW+0Yf093g==\"\r\n}\r\n"
+				},
+				"url": {
+					"raw": "http://localhost/GestionFinanzasApp-Backend/forgot-password",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"GestionFinanzasApp-Backend",
+						"forgot-password"
 					]
 				}
 			},

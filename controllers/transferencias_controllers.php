@@ -25,7 +25,7 @@ class transferencias_controllers extends BaseController
         $body = json_decode($f3->get('BODY'), true);
 
     $this->m_transferencia->set('usuario_id', $decoded->data->user_id);
-    $this->m_transferencia->set('fecha', date('Y-m-d H:i:s'));
+    $this->m_transferencia->set('fecha', $body['fecha']);
     $this->m_transferencia->set('cuenta_id_destino', $body['cuenta_id_destino']);
     $this->m_transferencia->set('cuenta_id_origen', $body['cuenta_id_origen']);
     $this->m_transferencia->set('monto', $body['monto']);
@@ -58,7 +58,7 @@ class transferencias_controllers extends BaseController
             $this->errorResponse('No tienes permiso para actualizar esta transferencia o no existe', 403);
             return;
         }
-        $this->m_transferencia->set('fecha', date('Y-m-d H:i:s'));
+        $this->m_transferencia->set('fecha', $body['fecha']);
         $this->m_transferencia->set('cuenta_id_destino', $body['cuenta_id_destino']);
         $this->m_transferencia->set('cuenta_id_origen', $body['cuenta_id_origen']);
         $this->m_transferencia->set('monto', $body['monto']);
@@ -98,16 +98,19 @@ class transferencias_controllers extends BaseController
     {
         $token = JwtHelper::getBearerToken($f3);
         $decoded = JwtHelper::validateToken($token, $this->jwtKey);
-        // Solo listar transferencias del usuario autenticado
         $result = $this->m_transferencia->find(['usuario_id = ?', $decoded->data->user_id]);
         $items = [];
+    
         foreach ($result as $transferencia) {
             $items[] = $transferencia->cast();
         }
-        if (count($items) > 0) {
-            $this->successResponse(['items' => $items, 'Total' => count($items)]);
-        } else {
-            $this->errorResponse('Aún no hay registros que mostrar', 404, ['items' => [], 'Total' => 0]);
-        }
+        $this->successResponse([
+            'items' => $items,
+            'Total' => count($items),
+            'mensaje' => count($items) > 0 
+                ? 'Listado obtenido correctamente' 
+                : 'No hay registros que mostrar'
+        ]);
     }
+
 }

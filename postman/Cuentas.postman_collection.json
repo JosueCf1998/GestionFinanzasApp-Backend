@@ -10,10 +10,16 @@
 			"name": "register",
 			"request": {
 				"method": "POST",
-				"header": [],
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjY0LCJlbWFpbCI6ImdveWl0bzE0MTBAZ21haWwuY29tIn0sImlhdCI6MTc1OTgwOTQ0NywiZXhwIjoxODU5ODA5NDQ3fQ.GYCMeVxEEZItpShIaiprECz38TK7EyerVE07WXZQhHA",
+						"type": "text"
+					}
+				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n  \"usuario_id\": 27,\r\n  \"nombre\": \"Cuenta Credito\",\r\n  \"saldo\": 8500\r\n}\r\n\r\n",
+					"raw": "{\r\n  \"nombre\": \"Sueldo\",\r\n  \"saldo\": 8500,\r\n  \"icon\": \"money\",\r\n  \"color\": \"#afb42b\"\r\n}\r\n\r\n",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -21,15 +27,14 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/crear-cuentas",
+					"raw": "http://localhost/GestionFinanzasApp-Backend/create-account",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
 					"path": [
-						"gestion_finanzas",
 						"GestionFinanzasApp-Backend",
-						"crear-cuentas"
+						"create-account"
 					]
 				}
 			},
@@ -42,19 +47,19 @@
 				"header": [
 					{
 						"key": "Authorization",
-						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjQxLCJlbWFpbCI6IkRhdG9zIGNvbmZpZGVuY2lhbGVzIn0sImlhdCI6MTc1NTk4OTMyOCwiZXhwIjoxNzU1OTg5NjI4fQ.JpSKO5-c3VUeiHun5LzuDlNcYHNr9ziGIFv2cO_7Vfk",
+						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjYzLCJlbWFpbCI6ImFuZHJlYUBnbWFpbC5jb20ifSwiaWF0IjoxNzU5MjA2NDA3LCJleHAiOjE4NTkyMDY0MDd9.xz04xz4o6ar8Czpal7hkpLQQlA5952UjsSDQrjw5wmI",
 						"type": "text"
 					}
 				],
 				"url": {
-					"raw": "http://localhost/GestionFinanzasApp-Backend/listado-cuentas",
+					"raw": "http://localhost/GestionFinanzasApp-Backend/list-account",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
 					"path": [
 						"GestionFinanzasApp-Backend",
-						"listado-cuentas"
+						"list-account"
 					]
 				}
 			},
@@ -64,10 +69,16 @@
 			"name": "update",
 			"request": {
 				"method": "POST",
-				"header": [],
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjYzLCJlbWFpbCI6ImFuZHJlYUBnbWFpbC5jb20ifSwiaWF0IjoxNzU5MjA2NDA3LCJleHAiOjE4NTkyMDY0MDd9.xz04xz4o6ar8Czpal7hkpLQQlA5952UjsSDQrjw5wmI",
+						"type": "text"
+					}
+				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n  \"usuario_id\":27,\r\n  \"nombre\": \"Cuenta Sueldo\",\r\n  \"saldo\": 5000\r\n}",
+					"raw": "{\r\n  \"cuenta_id\": 15,\r\n  \"nombre\": \"Sueldo\",\r\n  \"saldo\": 4500,\r\n  \"icon\": \"bills\",\r\n  \"color\": \"#afb42b\"\r\n}\r\n",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -75,36 +86,33 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/actualizar-cuentas/8",
+					"raw": "http://localhost/GestionFinanzasApp-Backend/update-account",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
 					"path": [
-						"gestion_finanzas",
 						"GestionFinanzasApp-Backend",
-						"actualizar-cuentas",
-						"8"
+						"update-account"
 					]
 				}
 			},
 			"response": []
 		},
 		{
-			"name": "delete cuentas",
+			"name": "delete account",
 			"request": {
 				"method": "POST",
 				"header": [
 					{
 						"key": "Authorization",
-						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjI2LCJlbWFpbCI6Imx1aXMxMjNAZ21haWwuY29tIn0sImlhdCI6MTc1MzA3NDA0NiwiZXhwIjoxNzUzMDc0MjI2fQ.aDTy1bjAghG6aAj76OoDxnnMbOWpj39Z6jvzDv-0SQI",
-						"type": "text",
-						"disabled": true
+						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjYzLCJlbWFpbCI6ImFuZHJlYUBnbWFpbC5jb20ifSwiaWF0IjoxNzU5MjA2NDA3LCJleHAiOjE4NTkyMDY0MDd9.xz04xz4o6ar8Czpal7hkpLQQlA5952UjsSDQrjw5wmI",
+						"type": "text"
 					}
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n  \"cuenta_id\": 10\r\n}",
+					"raw": "{\r\n  \"cuenta_id\": \r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -112,15 +120,14 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost/gestion_finanzas/GestionFinanzasApp-Backend/eliminar-cuentas",
+					"raw": "http://localhost/GestionFinanzasApp-Backend/delete-account",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
 					"path": [
-						"gestion_finanzas",
 						"GestionFinanzasApp-Backend",
-						"eliminar-cuentas"
+						"delete-account"
 					],
 					"query": [
 						{
