@@ -97,6 +97,8 @@ class cuentas_controllers extends BaseController
 
         $this->m_cuenta->set('nombre', $body['nombre']);
         $this->m_cuenta->set('saldo', $body['saldo']);
+        $this->m_cuenta->set('icon', $body['icon']);
+        $this->m_cuenta->set('color', $body['color']);
         $this->m_cuenta->save();
 
         $this->successResponse([
