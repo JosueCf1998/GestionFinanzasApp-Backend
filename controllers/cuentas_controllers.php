@@ -20,7 +20,7 @@ class cuentas_controllers extends BaseController
 
     public function crear($f3)
     {
-        $token = JwtHelper::getBearerToken($f3);
+        $token = JwtHelper::getBearerToken();
         $decoded = JwtHelper::validateToken($token, $this->jwtKey); 
         $bodyEncrypted = json_decode($f3->get('BODY'), true);
         $bodyDecrypted = AesDecryptor::decrypt(
@@ -59,7 +59,7 @@ class cuentas_controllers extends BaseController
 
     public function actualizar($f3)
     {   
-        $token = JwtHelper::getBearerToken($f3);
+        $token = JwtHelper::getBearerToken();
         $decoded = JwtHelper::validateToken($token, $this->jwtKey);
         
         $bodyEncrypted = json_decode($f3->get('BODY'), true);
@@ -109,7 +109,7 @@ class cuentas_controllers extends BaseController
 
     public function eliminar($f3)
     {
-        $token = JwtHelper::getBearerToken($f3);
+        $token = JwtHelper::getBearerToken();
         $decoded = JwtHelper::validateToken($token, $this->jwtKey);
         
         $bodyEncrypted = json_decode($f3->get('BODY'), true);
@@ -143,7 +143,7 @@ class cuentas_controllers extends BaseController
 
     public function listado($f3)
     {
-        $token = JwtHelper::getBearerToken($f3);
+        $token = JwtHelper::getBearerToken();
         $decoded = JwtHelper::validateToken($token, $this->jwtKey);
         // Solo listar cuentas del usuario autenticado
         $result = $this->m_cuenta->find(['usuario_id = ?', $decoded->data->user_id]);

@@ -13,6 +13,7 @@ class JwtHelper
             'iat' => time(),
             'exp' => time() + $expiry
         ]);
+        
         return JWT::encode($payload, $secretKey, self::$algorithm);
     }
     
@@ -20,8 +21,14 @@ class JwtHelper
     {
         try {
             return JWT::decode($token, new Key($secretKey, self::$algorithm));
+        } catch (\Firebase\JWT\ExpiredException $e) {
+            throw new RuntimeException('Token expirado. Por favor, inicie sesión nuevamente.', 401);
+        } catch (\Firebase\JWT\SignatureInvalidException $e) {
+            throw new RuntimeException('Token inválido: La firma no coincide.', 401);
+        } catch (\Firebase\JWT\BeforeValidException $e) {
+            throw new RuntimeException('Token aún no válido.', 401);
         } catch (Exception $e) {
-            throw new RuntimeException('Token inválido: ' . $e->getMessage());
+            throw new RuntimeException('Token inválido: ' . $e->getMessage(), 401);
         }
     }
     
@@ -29,10 +36,17 @@ class JwtHelper
     {
         $headers = getallheaders();
         
-        if (isset($headers['Authorization']) && preg_match('/Bearer\s(\S+)/', $headers['Authorization'], $matches)) {
-            return $matches[1];
+        if (!isset($headers['Authorization'])) {
+            throw new RuntimeException('Header de autorización no proporcionado.', 401);
         }
         
-        throw new RuntimeException('Token no proporcionado', 401);
+        $authHeader = trim($headers['Authorization']);
+        
+        // Extraer el token: puede venir como "Bearer token" o solo "token"
+        if (preg_match('/^Bearer\s+(.+)$/i', $authHeader, $matches)) {
+            return trim($matches[1]);
+        }
+        
+        return $authHeader;
     }
 }
