@@ -20,7 +20,7 @@ class transferencias_controllers extends BaseController
 
     public function crear($f3)
     {
-        $token = JwtHelper::getBearerToken($f3);
+        $token = JwtHelper::getBearerToken();
         $decoded = JwtHelper::validateToken($token, $this->jwtKey); 
         $body = json_decode($f3->get('BODY'), true);
         $this->m_transferencia->set('usuario_id', $decoded->data->user_id);
@@ -53,7 +53,7 @@ class transferencias_controllers extends BaseController
 
     public function actualizar($f3)
     {
-        $token = JwtHelper::getBearerToken($f3);
+        $token = JwtHelper::getBearerToken();
         $decoded = JwtHelper::validateToken($token, $this->jwtKey);
         $body = json_decode($f3->get('BODY'), true);
         $transf_id = $body['transf_id'];
@@ -94,7 +94,7 @@ class transferencias_controllers extends BaseController
 
     public function eliminar($f3)
     {
-        $token = JwtHelper::getBearerToken($f3);
+        $token = JwtHelper::getBearerToken();
         $decoded = JwtHelper::validateToken($token, $this->jwtKey);
         $body = json_decode($f3->get('BODY'), true);
         $transf_id = $body['transf_id'];
@@ -123,7 +123,7 @@ class transferencias_controllers extends BaseController
 
     public function listado($f3)
     {
-        $token = JwtHelper::getBearerToken($f3);
+        $token = JwtHelper::getBearerToken();
         $decoded = JwtHelper::validateToken($token, $this->jwtKey);
         $result = $this->m_transferencia->find(['usuario_id = ?', $decoded->data->user_id]);
         $items = [];

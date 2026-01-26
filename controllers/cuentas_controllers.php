@@ -20,10 +20,18 @@ class cuentas_controllers extends BaseController
 
     public function crear($f3)
     {
-        $token = JwtHelper::getBearerToken($f3);
+        $token = JwtHelper::getBearerToken();
         $decoded = JwtHelper::validateToken($token, $this->jwtKey); 
-        $body = json_decode($f3->get('BODY'), true);
-
+        $bodyEncrypted = json_decode($f3->get('BODY'), true);
+        $bodyDecrypted = AesDecryptor::decrypt(
+            $bodyEncrypted['data'], 
+            getenv('ENCRYPTION_JSON') ?: "TuClaveSuperSecreta@2024"
+        );
+        $body = json_decode($bodyDecrypted, true);
+        if (!$body || !is_array($body)) {
+            $this->errorResponse('Error al procesar los datos', 400);
+            return;
+        }
         // Validar que no exista otra cuenta con el mismo nombre para el usuario
         $_cuenta = new m_cuentas();
         $_cuenta->load(['nombre = ? AND usuario_id = ?', $body['nombre'], $decoded->data->user_id]);
@@ -68,9 +76,22 @@ class cuentas_controllers extends BaseController
 
     public function actualizar($f3)
     {   
-        $token = JwtHelper::getBearerToken($f3);
+        $token = JwtHelper::getBearerToken();
         $decoded = JwtHelper::validateToken($token, $this->jwtKey);
-        $body = json_decode($f3->get('BODY'), true);
+        
+        $bodyEncrypted = json_decode($f3->get('BODY'), true);
+        $bodyDecrypted = AesDecryptor::decrypt(
+            $bodyEncrypted['data'], 
+            getenv('ENCRYPTION_JSON') ?: "TuClaveSuperSecreta@2024"
+        );
+        
+        $body = json_decode($bodyDecrypted, true);
+
+        if (!$body || !is_array($body)) {
+            $this->errorResponse('Error al procesar los datos', 400);
+            return;
+        }
+
         $cuenta_id = $body['cuenta_id'];
         // Solo puede actualizar si es dueño
         $this->m_cuenta->load(['id = ? AND usuario_id = ?', $cuenta_id, $decoded->data->user_id]);
@@ -95,6 +116,8 @@ class cuentas_controllers extends BaseController
 
         $this->m_cuenta->set('nombre', $body['nombre']);
         $this->m_cuenta->set('saldo', $body['saldo']);
+        $this->m_cuenta->set('icon', $body['icon']);
+        $this->m_cuenta->set('color', $body['color']);
         $this->m_cuenta->save();
 
         // Si hay diferencia en saldo, crear transferencia tipo 'Ajuste'
@@ -130,9 +153,22 @@ class cuentas_controllers extends BaseController
 
     public function eliminar($f3)
     {
-        $token = JwtHelper::getBearerToken($f3);
+        $token = JwtHelper::getBearerToken();
         $decoded = JwtHelper::validateToken($token, $this->jwtKey);
-        $body = json_decode($f3->get('BODY'), true);
+        
+        $bodyEncrypted = json_decode($f3->get('BODY'), true);
+        $bodyDecrypted = AesDecryptor::decrypt(
+            $bodyEncrypted['data'], 
+            getenv('ENCRYPTION_JSON') ?: "TuClaveSuperSecreta@2024"
+        );
+        
+        $body = json_decode($bodyDecrypted, true);
+
+        if (!$body || !is_array($body)) {
+            $this->errorResponse('Error al procesar los datos', 400);
+            return;
+        }
+
         $cuenta_id = $body['cuenta_id'];
 
         // Solo puede eliminar si es dueño
@@ -151,7 +187,7 @@ class cuentas_controllers extends BaseController
 
     public function listado($f3)
     {
-        $token = JwtHelper::getBearerToken($f3);
+        $token = JwtHelper::getBearerToken();
         $decoded = JwtHelper::validateToken($token, $this->jwtKey);
         // Solo listar cuentas del usuario autenticado
         $result = $this->m_cuenta->find(['usuario_id = ?', $decoded->data->user_id]);
@@ -165,10 +201,6 @@ class cuentas_controllers extends BaseController
                 'color' => $cuenta->color
             ];
         }
-        if (count($items) > 0) {
-            $this->successResponse(['items' => $items, 'Total' => count($items)]);
-        } else {
-            $this->errorResponse('Aún no hay registros que mostrar', 404, ['items' => [], 'Total' => 0]);
-        }
+        $this->successResponse(['items' => $items, 'Total' => count($items)]);
     }
 }

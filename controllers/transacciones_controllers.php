@@ -20,7 +20,7 @@ class transacciones_controllers extends BaseController
     
     public function crear($f3)
     {
-        $token = JwtHelper::getBearerToken($f3);
+        $token = JwtHelper::getBearerToken();
         $decoded = JwtHelper::validateToken($token, $this->jwtKey); 
         $body = json_decode($f3->get('BODY'), true);
 
@@ -46,7 +46,7 @@ class transacciones_controllers extends BaseController
 
     public function actualizar($f3)
     {
-        $token = JwtHelper::getBearerToken($f3);
+        $token = JwtHelper::getBearerToken();
         $decoded = JwtHelper::validateToken($token, $this->jwtKey);
         $body = json_decode($f3->get('BODY'), true);
         $transac_id = $body['transac_id'];
@@ -75,7 +75,7 @@ class transacciones_controllers extends BaseController
 
     public function eliminar($f3)
     {
-        $token = JwtHelper::getBearerToken($f3);
+        $token = JwtHelper::getBearerToken();
         $decoded = JwtHelper::validateToken($token, $this->jwtKey);
         $body = json_decode($f3->get('BODY'), true);
         $transac_id = $body['transac_id'];
@@ -96,7 +96,7 @@ class transacciones_controllers extends BaseController
 
     public function listado($f3)
     {
-        $token = JwtHelper::getBearerToken($f3);
+        $token = JwtHelper::getBearerToken();
         $decoded = JwtHelper::validateToken($token, $this->jwtKey);
     
         $result = $this->m_transaccion->find(['usuario_id = ?', $decoded->data->user_id]);
