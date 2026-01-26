@@ -39,10 +39,27 @@ class cuentas_controllers extends BaseController
         $this->m_cuenta->set('color', $body['color']);
 
         if ($this->m_cuenta->save()) {
+            $newId = $this->m_cuenta->get('id');
+            // Si se crea con saldo inicial, registrar una transferencia tipo 'Inicial'
+            if (!empty($body['saldo']) && floatval($body['saldo']) != 0) {
+                $mtrans = new m_transferencias();
+                $mtrans->set('usuario_id', $decoded->data->user_id);
+                $mtrans->set('tipo', 'Inicial');
+                $mtrans->set('fecha', date('Y-m-d'));
+                $mtrans->set('cuenta_id_destino', $newId);
+                $mtrans->set('cuenta_id_origen', null);
+                $mtrans->set('monto', $body['saldo']);
+                $mtrans->set('comentario', 'Saldo inicial');
+                $mtrans->save();
+            }
+
+            // Recalcular saldo para la cuenta creada
+            $mcuenta = new m_cuentas();
+            $mcuenta->recalcularSaldo($newId);
+
             $this->successResponse([
                 'mensaje' => 'Cuenta creada correctamente',
-                'info' => [
-                ]
+                'info' => [ 'id' => $newId ]
             ]);
         } else {
             $this->errorResponse('No se pudo crear la cuenta', 500);
@@ -74,9 +91,36 @@ class cuentas_controllers extends BaseController
             return;
         }
 
+        $oldSaldo = $this->m_cuenta->get('saldo');
+
         $this->m_cuenta->set('nombre', $body['nombre']);
         $this->m_cuenta->set('saldo', $body['saldo']);
         $this->m_cuenta->save();
+
+        // Si hay diferencia en saldo, crear transferencia tipo 'Ajuste'
+        $delta = floatval($body['saldo']) - floatval($oldSaldo);
+        if (abs($delta) > 0.0001) {
+            $mtrans = new m_transferencias();
+            $mtrans->set('usuario_id', $decoded->data->user_id);
+            $mtrans->set('tipo', 'Ajuste');
+            $mtrans->set('fecha', date('Y-m-d'));
+            if ($delta > 0) {
+                $mtrans->set('cuenta_id_destino', $this->m_cuenta->get('id'));
+                $mtrans->set('cuenta_id_origen', null);
+                $mtrans->set('monto', $delta);
+                $mtrans->set('comentario', 'Ajuste por incremento de saldo');
+            } else {
+                $mtrans->set('cuenta_id_origen', $this->m_cuenta->get('id'));
+                $mtrans->set('cuenta_id_destino', null);
+                $mtrans->set('monto', abs($delta));
+                $mtrans->set('comentario', 'Ajuste por disminución de saldo');
+            }
+            $mtrans->save();
+
+            // Recalcular saldo
+            $mcuenta = new m_cuentas();
+            $mcuenta->recalcularSaldo($this->m_cuenta->get('id'));
+        }
 
         $this->successResponse([
             'mensaje' => 'Cuenta actualizada',

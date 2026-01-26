@@ -23,17 +23,23 @@ class transferencias_controllers extends BaseController
         $token = JwtHelper::getBearerToken($f3);
         $decoded = JwtHelper::validateToken($token, $this->jwtKey); 
         $body = json_decode($f3->get('BODY'), true);
-
-    $this->m_transferencia->set('usuario_id', $decoded->data->user_id);
-    $this->m_transferencia->set('fecha', $body['fecha']);
-    $this->m_transferencia->set('cuenta_id_destino', $body['cuenta_id_destino']);
-    $this->m_transferencia->set('cuenta_id_origen', $body['cuenta_id_origen']);
-    $this->m_transferencia->set('monto', $body['monto']);
-    $this->m_transferencia->set('comentario', $body['comentario']);
-
-    
-
+        $this->m_transferencia->set('usuario_id', $decoded->data->user_id);
+        $this->m_transferencia->set('fecha', $body['fecha']);
+        $this->m_transferencia->set('cuenta_id_destino', $body['cuenta_id_destino']);
+        $this->m_transferencia->set('cuenta_id_origen', $body['cuenta_id_origen']);
+        $this->m_transferencia->set('monto', $body['monto']);
+        $this->m_transferencia->set('comentario', $body['comentario']);
+        // tipo: Inicial, Ajuste, Realizado
+        $this->m_transferencia->set('tipo', isset($body['tipo']) ? $body['tipo'] : 'Realizado');
         if ($this->m_transferencia->save()) {
+            // Actualizar saldos de cuentas afectadas
+            $mcuenta = new m_cuentas();
+            if (!empty($body['cuenta_id_destino'])) {
+                $mcuenta->recalcularSaldo($body['cuenta_id_destino']);
+            }
+            if (!empty($body['cuenta_id_origen'])) {
+                $mcuenta->recalcularSaldo($body['cuenta_id_origen']);
+            }
             $this->successResponse([
                 'mensaje' => 'Transferencia creada correctamente',
                 'info' => [
@@ -58,14 +64,27 @@ class transferencias_controllers extends BaseController
             $this->errorResponse('No tienes permiso para actualizar esta transferencia o no existe', 403);
             return;
         }
+        // Guardar valores antiguos para recalcular saldos luego
+        $old_origen = $this->m_transferencia->get('cuenta_id_origen');
+        $old_destino = $this->m_transferencia->get('cuenta_id_destino');
+
         $this->m_transferencia->set('fecha', $body['fecha']);
         $this->m_transferencia->set('cuenta_id_destino', $body['cuenta_id_destino']);
         $this->m_transferencia->set('cuenta_id_origen', $body['cuenta_id_origen']);
         $this->m_transferencia->set('monto', $body['monto']);
         $this->m_transferencia->set('comentario', $body['comentario']);
-
+        if (isset($body['tipo'])) {
+            $this->m_transferencia->set('tipo', $body['tipo']);
+        }
 
         $this->m_transferencia->save();
+
+        // Recalcular saldos: para origen/destino antiguos y nuevos
+        $mcuenta = new m_cuentas();
+        $affected = array_unique(array_filter([$old_origen, $old_destino, $body['cuenta_id_origen'], $body['cuenta_id_destino']]));
+        foreach ($affected as $cid) {
+            if (!empty($cid)) $mcuenta->recalcularSaldo($cid);
+        }
 
         $this->successResponse([
             'mensaje' => 'Transferencia actualizada',
@@ -84,7 +103,15 @@ class transferencias_controllers extends BaseController
         $this->m_transferencia->load(['id = ? AND usuario_id = ?', $transf_id, $decoded->data->user_id]);
 
         if ($this->m_transferencia->loaded()) {
+            // Guardar cuentas afectadas antes de borrar
+            $old_origen = $this->m_transferencia->get('cuenta_id_origen');
+            $old_destino = $this->m_transferencia->get('cuenta_id_destino');
             $this->m_transferencia->erase();
+            // Recalcular saldos
+            $mcuenta = new m_cuentas();
+            if (!empty($old_origen)) $mcuenta->recalcularSaldo($old_origen);
+            if (!empty($old_destino)) $mcuenta->recalcularSaldo($old_destino);
+
             $this->successResponse([
                 'mensaje' => 'Transferencia eliminada',
                 'info' => ['id' => $transf_id]

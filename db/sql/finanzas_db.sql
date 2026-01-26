@@ -121,6 +121,7 @@ CREATE TABLE `transacciones` (
 CREATE TABLE `transferencias` (
   `id` int(11) NOT NULL,
   `usuario_id` int(11) DEFAULT NULL,
+  `tipo` varchar(50) DEFAULT NULL,
   `fecha` date DEFAULT NULL,
   `cuenta_id_destino` int(11) DEFAULT NULL,
   `cuenta_id_origen` int(11) DEFAULT NULL,
@@ -132,8 +133,8 @@ CREATE TABLE `transferencias` (
 -- Volcado de datos para la tabla `transferencias`
 --
 
-INSERT INTO `transferencias` (`id`, `usuario_id`, `fecha`, `cuenta_id_destino`, `cuenta_id_origen`, `monto`, `comentario`) VALUES
-(12, 64, '2025-10-07', 20, 19, 150.75, 'Transferencia de prueba');
+INSERT INTO `transferencias` (`id`, `usuario_id`, `tipo`, `fecha`, `cuenta_id_destino`, `cuenta_id_origen`, `monto`, `comentario`) VALUES
+(12, 64, 'Realizado', '2025-10-07', 20, 19, 150.75, 'Transferencia de prueba');
 
 -- --------------------------------------------------------
 
