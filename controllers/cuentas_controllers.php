@@ -20,18 +20,10 @@ class cuentas_controllers extends BaseController
 
     public function crear($f3)
     {
-        $token = JwtHelper::getBearerToken();
+        $token = JwtHelper::getBearerToken($f3);
         $decoded = JwtHelper::validateToken($token, $this->jwtKey); 
-        $bodyEncrypted = json_decode($f3->get('BODY'), true);
-        $bodyDecrypted = AesDecryptor::decrypt(
-            $bodyEncrypted['data'], 
-            getenv('ENCRYPTION_JSON') ?: "TuClaveSuperSecreta@2024"
-        );
-        $body = json_decode($bodyDecrypted, true);
-        if (!$body || !is_array($body)) {
-            $this->errorResponse('Error al procesar los datos', 400);
-            return;
-        }
+        $body = json_decode($f3->get('BODY'), true);
+
         // Validar que no exista otra cuenta con el mismo nombre para el usuario
         $_cuenta = new m_cuentas();
         $_cuenta->load(['nombre = ? AND usuario_id = ?', $body['nombre'], $decoded->data->user_id]);
@@ -47,27 +39,23 @@ class cuentas_controllers extends BaseController
         $this->m_cuenta->set('color', $body['color']);
 
         if ($this->m_cuenta->save()) {
-            $newId = $this->m_cuenta->get('id');
-            // Si se crea con saldo inicial, registrar una transferencia tipo 'Inicial'
-            if (!empty($body['saldo']) && floatval($body['saldo']) != 0) {
-                $mtrans = new m_transferencias();
-                $mtrans->set('usuario_id', $decoded->data->user_id);
-                $mtrans->set('tipo', 'Inicial');
-                $mtrans->set('fecha', date('Y-m-d'));
-                $mtrans->set('cuenta_id_destino', $newId);
-                $mtrans->set('cuenta_id_origen', null);
-                $mtrans->set('monto', $body['saldo']);
-                $mtrans->set('comentario', 'Saldo inicial');
-                $mtrans->save();
+            // Si el saldo inicial es mayor que 0, crear una transferencia tipo 'Inicial'
+            if (floatval($body['saldo']) > 0) {
+                $m_transferencia = new m_transferencias();
+                $m_transferencia->set('usuario_id', $decoded->data->user_id);
+                $m_transferencia->set('fecha', date('Y-m-d'));
+                $m_transferencia->set('cuenta_id_destino', $this->m_cuenta->get('id'));
+                $m_transferencia->set('cuenta_id_origen', null);
+                $m_transferencia->set('monto', $body['saldo']);
+                $m_transferencia->set('comentario', 'Saldo inicial de la cuenta');
+                $m_transferencia->set('tipo_transferencia', 'Inicial');
+                $m_transferencia->save();
             }
-
-            // Recalcular saldo para la cuenta creada
-            $mcuenta = new m_cuentas();
-            $mcuenta->recalcularSaldo($newId);
 
             $this->successResponse([
                 'mensaje' => 'Cuenta creada correctamente',
-                'info' => [ 'id' => $newId ]
+                'info' => [
+                ]
             ]);
         } else {
             $this->errorResponse('No se pudo crear la cuenta', 500);
@@ -76,22 +64,9 @@ class cuentas_controllers extends BaseController
 
     public function actualizar($f3)
     {   
-        $token = JwtHelper::getBearerToken();
+        $token = JwtHelper::getBearerToken($f3);
         $decoded = JwtHelper::validateToken($token, $this->jwtKey);
-        
-        $bodyEncrypted = json_decode($f3->get('BODY'), true);
-        $bodyDecrypted = AesDecryptor::decrypt(
-            $bodyEncrypted['data'], 
-            getenv('ENCRYPTION_JSON') ?: "TuClaveSuperSecreta@2024"
-        );
-        
-        $body = json_decode($bodyDecrypted, true);
-
-        if (!$body || !is_array($body)) {
-            $this->errorResponse('Error al procesar los datos', 400);
-            return;
-        }
-
+        $body = json_decode($f3->get('BODY'), true);
         $cuenta_id = $body['cuenta_id'];
         // Solo puede actualizar si es dueño
         $this->m_cuenta->load(['id = ? AND usuario_id = ?', $cuenta_id, $decoded->data->user_id]);
@@ -112,37 +87,37 @@ class cuentas_controllers extends BaseController
             return;
         }
 
-        $oldSaldo = $this->m_cuenta->get('saldo');
+        // Calcular la diferencia entre el saldo actual y el nuevo
+        $saldo_actual = floatval($this->m_cuenta->get('saldo'));
+        $saldo_nuevo = floatval($body['saldo']);
+        $diferencia = $saldo_nuevo - $saldo_actual;
 
         $this->m_cuenta->set('nombre', $body['nombre']);
         $this->m_cuenta->set('saldo', $body['saldo']);
-        $this->m_cuenta->set('icon', $body['icon']);
-        $this->m_cuenta->set('color', $body['color']);
         $this->m_cuenta->save();
 
-        // Si hay diferencia en saldo, crear transferencia tipo 'Ajuste'
-        $delta = floatval($body['saldo']) - floatval($oldSaldo);
-        if (abs($delta) > 0.0001) {
-            $mtrans = new m_transferencias();
-            $mtrans->set('usuario_id', $decoded->data->user_id);
-            $mtrans->set('tipo', 'Ajuste');
-            $mtrans->set('fecha', date('Y-m-d'));
-            if ($delta > 0) {
-                $mtrans->set('cuenta_id_destino', $this->m_cuenta->get('id'));
-                $mtrans->set('cuenta_id_origen', null);
-                $mtrans->set('monto', $delta);
-                $mtrans->set('comentario', 'Ajuste por incremento de saldo');
+        // Si hay diferencia en el saldo, crear una transferencia tipo 'Ajuste'
+        if ($diferencia != 0) {
+            $m_transferencia = new m_transferencias();
+            $m_transferencia->set('usuario_id', $decoded->data->user_id);
+            $m_transferencia->set('fecha', date('Y-m-d'));
+            
+            if ($diferencia > 0) {
+                // Incremento: cuenta destino recibe el ajuste
+                $m_transferencia->set('cuenta_id_destino', $cuenta_id);
+                $m_transferencia->set('cuenta_id_origen', null);
+                $m_transferencia->set('monto', abs($diferencia));
+                $m_transferencia->set('comentario', 'Ajuste de saldo (incremento)');
             } else {
-                $mtrans->set('cuenta_id_origen', $this->m_cuenta->get('id'));
-                $mtrans->set('cuenta_id_destino', null);
-                $mtrans->set('monto', abs($delta));
-                $mtrans->set('comentario', 'Ajuste por disminución de saldo');
+                // Decremento: cuenta origen pierde el ajuste
+                $m_transferencia->set('cuenta_id_destino', null);
+                $m_transferencia->set('cuenta_id_origen', $cuenta_id);
+                $m_transferencia->set('monto', abs($diferencia));
+                $m_transferencia->set('comentario', 'Ajuste de saldo (decremento)');
             }
-            $mtrans->save();
-
-            // Recalcular saldo
-            $mcuenta = new m_cuentas();
-            $mcuenta->recalcularSaldo($this->m_cuenta->get('id'));
+            
+            $m_transferencia->set('tipo_transferencia', 'Ajuste');
+            $m_transferencia->save();
         }
 
         $this->successResponse([
@@ -153,22 +128,9 @@ class cuentas_controllers extends BaseController
 
     public function eliminar($f3)
     {
-        $token = JwtHelper::getBearerToken();
+        $token = JwtHelper::getBearerToken($f3);
         $decoded = JwtHelper::validateToken($token, $this->jwtKey);
-        
-        $bodyEncrypted = json_decode($f3->get('BODY'), true);
-        $bodyDecrypted = AesDecryptor::decrypt(
-            $bodyEncrypted['data'], 
-            getenv('ENCRYPTION_JSON') ?: "TuClaveSuperSecreta@2024"
-        );
-        
-        $body = json_decode($bodyDecrypted, true);
-
-        if (!$body || !is_array($body)) {
-            $this->errorResponse('Error al procesar los datos', 400);
-            return;
-        }
-
+        $body = json_decode($f3->get('BODY'), true);
         $cuenta_id = $body['cuenta_id'];
 
         // Solo puede eliminar si es dueño
@@ -187,7 +149,7 @@ class cuentas_controllers extends BaseController
 
     public function listado($f3)
     {
-        $token = JwtHelper::getBearerToken();
+        $token = JwtHelper::getBearerToken($f3);
         $decoded = JwtHelper::validateToken($token, $this->jwtKey);
         // Solo listar cuentas del usuario autenticado
         $result = $this->m_cuenta->find(['usuario_id = ?', $decoded->data->user_id]);
@@ -201,6 +163,10 @@ class cuentas_controllers extends BaseController
                 'color' => $cuenta->color
             ];
         }
-        $this->successResponse(['items' => $items, 'Total' => count($items)]);
+        if (count($items) > 0) {
+            $this->successResponse(['items' => $items, 'Total' => count($items)]);
+        } else {
+            $this->errorResponse('Aún no hay registros que mostrar', 404, ['items' => [], 'Total' => 0]);
+        }
     }
 }
