@@ -22,7 +22,16 @@ class transferencias_controllers extends BaseController
     {
         $token = JwtHelper::getBearerToken($f3);
         $decoded = JwtHelper::validateToken($token, $this->jwtKey); 
-        $body = json_decode($f3->get('BODY'), true);
+        $bodyEncrypted = json_decode($f3->get('BODY'), true);
+        $bodyDecrypted = AesDecryptor::decrypt(
+            $bodyEncrypted['data'], 
+            getenv('ENCRYPTION_JSON') ?: "TuClaveSuperSecreta@2024"
+        );
+        $body = json_decode($bodyDecrypted, true);
+        if (!$body || !is_array($body)) {
+            $this->errorResponse('Error al procesar los datos', 400);
+            return;
+        }
 
     $this->m_transferencia->set('usuario_id', $decoded->data->user_id);
     $this->m_transferencia->set('fecha', $body['fecha']);
@@ -30,7 +39,6 @@ class transferencias_controllers extends BaseController
     $this->m_transferencia->set('cuenta_id_origen', $body['cuenta_id_origen']);
     $this->m_transferencia->set('monto', $body['monto']);
     $this->m_transferencia->set('comentario', $body['comentario']);
-    $this->m_transferencia->set('tipo_transferencia', 'Realizado');
 
     
 
@@ -53,7 +61,7 @@ class transferencias_controllers extends BaseController
 
     public function actualizar($f3)
     {
-        $token = JwtHelper::getBearerToken($f3);
+        $token = JwtHelper::getBearerToken();
         $decoded = JwtHelper::validateToken($token, $this->jwtKey);
         $body = json_decode($f3->get('BODY'), true);
         $transf_id = $body['transf_id'];
