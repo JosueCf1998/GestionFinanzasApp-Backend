@@ -86,7 +86,14 @@ class cuentas_controllers extends BaseController
             return;
         }
 
-        $cuenta_id = $body['cuenta_id'];
+        // Obtener cuenta_id del body (soportar 'id' o 'cuenta_id')
+        $cuenta_id = $body['cuenta_id'] ?? $body['id'] ?? null;
+        
+        if (!$cuenta_id) {
+            $this->errorResponse('ID de cuenta no proporcionado', 400);
+            return;
+        }
+
         // Solo puede actualizar si es dueño
         $this->m_cuenta->load(['id = ? AND usuario_id = ?', $cuenta_id, $decoded->data->user_id]);
 
@@ -95,8 +102,19 @@ class cuentas_controllers extends BaseController
             return;
         }
 
+        // Soportar nombres de campos en inglés y español
+        $nombre = $body['nombre'] ?? $body['name'] ?? null;
+        $saldo = $body['saldo'] ?? $body['amount'] ?? null;
+        $icon = $body['icon'] ?? null;
+        $color = $body['color'] ?? null;
+
+        if (!$nombre || $saldo === null || !$icon || !$color) {
+            $this->errorResponse('Faltan datos requeridos', 400);
+            return;
+        }
+
         $_cuenta = new m_cuentas();
-        $_cuenta->load(['nombre = ? AND id <> ? AND usuario_id = ?', $body['nombre'], $cuenta_id, $decoded->data->user_id]);
+        $_cuenta->load(['nombre = ? AND id <> ? AND usuario_id = ?', $nombre, $cuenta_id, $decoded->data->user_id]);
 
         if ($_cuenta->loaded()) {
             $this->errorResponse(
@@ -108,11 +126,13 @@ class cuentas_controllers extends BaseController
 
         // Calcular la diferencia entre el saldo actual y el nuevo
         $saldo_actual = floatval($this->m_cuenta->get('saldo'));
-        $saldo_nuevo = floatval($body['saldo']);
+        $saldo_nuevo = floatval($saldo);
         $diferencia = $saldo_nuevo - $saldo_actual;
 
-        $this->m_cuenta->set('nombre', $body['nombre']);
-        $this->m_cuenta->set('saldo', $body['saldo']);
+        $this->m_cuenta->set('nombre', $nombre);
+        $this->m_cuenta->set('saldo', $saldo);
+        $this->m_cuenta->set('icon', $icon);
+        $this->m_cuenta->set('color', $color);
         $this->m_cuenta->save();
 
         // Si hay diferencia en el saldo, crear una transferencia tipo 'Ajuste'

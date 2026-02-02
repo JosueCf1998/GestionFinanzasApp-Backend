@@ -20,9 +20,18 @@ class transacciones_controllers extends BaseController
     
     public function crear($f3)
     {
-        $token = JwtHelper::getBearerToken();
+        $token = JwtHelper::getBearerToken($f3);
         $decoded = JwtHelper::validateToken($token, $this->jwtKey); 
-        $body = json_decode($f3->get('BODY'), true);
+        $bodyEncrypted = json_decode($f3->get('BODY'), true);
+        $bodyDecrypted = AesDecryptor::decrypt(
+            $bodyEncrypted['data'], 
+            getenv('ENCRYPTION_JSON') ?: "TuClaveSuperSecreta@2024"
+        );
+        $body = json_decode($bodyDecrypted, true);
+        if (!$body || !is_array($body)) {
+            $this->errorResponse('Error al procesar los datos', 400);
+            return;
+        }
 
         $this->m_transaccion->set('usuario_id', $decoded->data->user_id);
         $this->m_transaccion->set('categoria_id', $body['categoria_id']);
@@ -46,9 +55,20 @@ class transacciones_controllers extends BaseController
 
     public function actualizar($f3)
     {
-        $token = JwtHelper::getBearerToken();
-        $decoded = JwtHelper::validateToken($token, $this->jwtKey);
-        $body = json_decode($f3->get('BODY'), true);
+        
+        $token = JwtHelper::getBearerToken($f3);
+        $decoded = JwtHelper::validateToken($token, $this->jwtKey); 
+        $bodyEncrypted = json_decode($f3->get('BODY'), true);
+        $bodyDecrypted = AesDecryptor::decrypt(
+            $bodyEncrypted['data'], 
+            getenv('ENCRYPTION_JSON') ?: "TuClaveSuperSecreta@2024"
+        );
+        $body = json_decode($bodyDecrypted, true);
+        if (!$body || !is_array($body)) {
+            $this->errorResponse('Error al procesar los datos', 400);
+            return;
+        }
+
         $transac_id = $body['transac_id'];
         // Solo puede actualizar si es dueño
         $this->m_transaccion->load(['id = ? AND usuario_id = ?', $transac_id, $decoded->data->user_id]);
@@ -75,9 +95,20 @@ class transacciones_controllers extends BaseController
 
     public function eliminar($f3)
     {
-        $token = JwtHelper::getBearerToken();
-        $decoded = JwtHelper::validateToken($token, $this->jwtKey);
-        $body = json_decode($f3->get('BODY'), true);
+        
+        $token = JwtHelper::getBearerToken($f3);
+        $decoded = JwtHelper::validateToken($token, $this->jwtKey); 
+        $bodyEncrypted = json_decode($f3->get('BODY'), true);
+        $bodyDecrypted = AesDecryptor::decrypt(
+            $bodyEncrypted['data'], 
+            getenv('ENCRYPTION_JSON') ?: "TuClaveSuperSecreta@2024"
+        );
+        $body = json_decode($bodyDecrypted, true);
+        if (!$body || !is_array($body)) {
+            $this->errorResponse('Error al procesar los datos', 400);
+            return;
+        }
+        
         $transac_id = $body['transac_id'];
 
         // Solo puede eliminar si es dueño
