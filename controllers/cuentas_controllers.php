@@ -22,7 +22,16 @@ class cuentas_controllers extends BaseController
     {
         $token = JwtHelper::getBearerToken($f3);
         $decoded = JwtHelper::validateToken($token, $this->jwtKey); 
-        $body = json_decode($f3->get('BODY'), true);
+        $bodyEncrypted = json_decode($f3->get('BODY'), true);
+        $bodyDecrypted = AesDecryptor::decrypt(
+            $bodyEncrypted['data'], 
+            getenv('ENCRYPTION_JSON') ?: "TuClaveSuperSecreta@2024"
+        );
+        $body = json_decode($bodyDecrypted, true);
+        if (!$body || !is_array($body)) {
+            $this->errorResponse('Error al procesar los datos', 400);
+            return;
+        }
 
         // Validar que no exista otra cuenta con el mismo nombre para el usuario
         $_cuenta = new m_cuentas();
@@ -65,8 +74,18 @@ class cuentas_controllers extends BaseController
     public function actualizar($f3)
     {   
         $token = JwtHelper::getBearerToken($f3);
-        $decoded = JwtHelper::validateToken($token, $this->jwtKey);
-        $body = json_decode($f3->get('BODY'), true);
+        $decoded = JwtHelper::validateToken($token, $this->jwtKey); 
+        $bodyEncrypted = json_decode($f3->get('BODY'), true);
+        $bodyDecrypted = AesDecryptor::decrypt(
+            $bodyEncrypted['data'], 
+            getenv('ENCRYPTION_JSON') ?: "TuClaveSuperSecreta@2024"
+        );
+        $body = json_decode($bodyDecrypted, true);
+        if (!$body || !is_array($body)) {
+            $this->errorResponse('Error al procesar los datos', 400);
+            return;
+        }
+
         $cuenta_id = $body['cuenta_id'];
         // Solo puede actualizar si es dueño
         $this->m_cuenta->load(['id = ? AND usuario_id = ?', $cuenta_id, $decoded->data->user_id]);
@@ -129,10 +148,19 @@ class cuentas_controllers extends BaseController
     public function eliminar($f3)
     {
         $token = JwtHelper::getBearerToken($f3);
-        $decoded = JwtHelper::validateToken($token, $this->jwtKey);
-        $body = json_decode($f3->get('BODY'), true);
-        $cuenta_id = $body['cuenta_id'];
+        $decoded = JwtHelper::validateToken($token, $this->jwtKey); 
+        $bodyEncrypted = json_decode($f3->get('BODY'), true);
+        $bodyDecrypted = AesDecryptor::decrypt(
+            $bodyEncrypted['data'], 
+            getenv('ENCRYPTION_JSON') ?: "TuClaveSuperSecreta@2024"
+        );
+        $body = json_decode($bodyDecrypted, true);
+        if (!$body || !is_array($body)) {
+            $this->errorResponse('Error al procesar los datos', 400);
+            return;
+        }
 
+        $cuenta_id = $body['cuenta_id'];
         // Solo puede eliminar si es dueño
         $this->m_cuenta->load(['id = ? AND usuario_id = ?', $cuenta_id, $decoded->data->user_id]);
 

@@ -20,9 +20,18 @@ class categoria_controllers extends BaseController
 
     public function crear($f3)
     {
-        $token = JwtHelper::getBearerToken();
+        $token = JwtHelper::getBearerToken($f3);
         $decoded = JwtHelper::validateToken($token, $this->jwtKey); 
-        $body = json_decode($f3->get('BODY'), true);
+        $bodyEncrypted = json_decode($f3->get('BODY'), true);
+        $bodyDecrypted = AesDecryptor::decrypt(
+            $bodyEncrypted['data'], 
+            getenv('ENCRYPTION_JSON') ?: "TuClaveSuperSecreta@2024"
+        );
+        $body = json_decode($bodyDecrypted, true);
+        if (!$body || !is_array($body)) {
+            $this->errorResponse('Error al procesar los datos', 400);
+            return;
+        }
 
         $this->m_categoria->set('usuario_id', $decoded->data->user_id);
         $this->m_categoria->set('nombre', $body['nombre']);
@@ -44,9 +53,38 @@ class categoria_controllers extends BaseController
 
     public function actualizar($f3)
     {   
-        $token = JwtHelper::getBearerToken();
-        $decoded = JwtHelper::validateToken($token, $this->jwtKey);
-        $categoria_id = $f3->get('PARAMS.categoria_id');
+        $token = JwtHelper::getBearerToken($f3);
+        $decoded = JwtHelper::validateToken($token, $this->jwtKey); 
+        $bodyEncrypted = json_decode($f3->get('BODY'), true);
+        $bodyDecrypted = AesDecryptor::decrypt(
+            $bodyEncrypted['data'], 
+            getenv('ENCRYPTION_JSON') ?: "TuClaveSuperSecreta@2024"
+        );
+        $body = json_decode($bodyDecrypted, true);
+        if (!$body || !is_array($body)) {
+            $this->errorResponse('Error al procesar los datos', 400);
+            return;
+        }
+
+        // Obtener categoria_id del body o de los parámetros de la URL
+        $categoria_id = $body['categoria_id'] ?? $body['id'] ?? $f3->get('PARAMS.categoria_id');
+        
+        if (!$categoria_id) {
+            $this->errorResponse('ID de categoría no proporcionado', 400);
+            return;
+        }
+
+        // Normalizar nombres de campos (soportar inglés y español)
+        $nombre = $body['nombre'] ?? $body['name'] ?? null;
+        $tipo = $body['tipo'] ?? $body['type'] ?? null;
+        $icono = $body['icono'] ?? $body['icon'] ?? null;
+        $color = $body['color'] ?? null;
+
+        if (!$nombre || !$tipo || !$icono || !$color) {
+            $this->errorResponse('Faltan datos requeridos', 400);
+            return;
+        }
+
         // Solo puede actualizar si es dueño y no es global
         $this->m_categoria->load(['id = ? AND usuario_id = ?', $categoria_id, $decoded->data->user_id]);
 
@@ -55,20 +93,18 @@ class categoria_controllers extends BaseController
             return;
         }
 
-        $body = json_decode($f3->get('BODY'), true);
-
         $_categoria = new m_categorias();
-        $_categoria->load(['nombre = ? AND id <> ? AND usuario_id = ?', $body['nombre'], $categoria_id, $decoded->data->user_id]);
+        $_categoria->load(['nombre = ? AND id <> ? AND usuario_id = ?', $nombre, $categoria_id, $decoded->data->user_id]);
 
         if ($_categoria->loaded()) {
             $this->errorResponse('El nombre ya está en uso por otra categoría tuya', 409);
             return;
         }
 
-        $this->m_categoria->set('nombre', $body['nombre']);
-        $this->m_categoria->set('tipo', $body['tipo']);
-        $this->m_categoria->set('icono', $body['icono']);
-        $this->m_categoria->set('color', $body['color']);
+        $this->m_categoria->set('nombre', $nombre);
+        $this->m_categoria->set('tipo', $tipo);
+        $this->m_categoria->set('icono', $icono);
+        $this->m_categoria->set('color', $color);
 
         $this->m_categoria->save();
 
@@ -80,11 +116,20 @@ class categoria_controllers extends BaseController
 
     public function eliminar($f3)
     {
-        $token = JwtHelper::getBearerToken();
-        $decoded = JwtHelper::validateToken($token, $this->jwtKey);
-        $body = json_decode($f3->get('BODY'), true);
-        $categoria_id = $body['categoria_id'];
+        $token = JwtHelper::getBearerToken($f3);
+        $decoded = JwtHelper::validateToken($token, $this->jwtKey); 
+        $bodyEncrypted = json_decode($f3->get('BODY'), true);
+        $bodyDecrypted = AesDecryptor::decrypt(
+            $bodyEncrypted['data'], 
+            getenv('ENCRYPTION_JSON') ?: "TuClaveSuperSecreta@2024"
+        );
+        $body = json_decode($bodyDecrypted, true);
+        if (!$body || !is_array($body)) {
+            $this->errorResponse('Error al procesar los datos', 400);
+            return;
+        }
 
+        $categoria_id = $body['categoria_id'];
         // Solo puede eliminar si es dueño y no es global
         $this->m_categoria->load(['id = ? AND usuario_id = ?', $categoria_id, $decoded->data->user_id]);
 

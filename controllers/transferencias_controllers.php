@@ -61,9 +61,19 @@ class transferencias_controllers extends BaseController
 
     public function actualizar($f3)
     {
-        $token = JwtHelper::getBearerToken();
-        $decoded = JwtHelper::validateToken($token, $this->jwtKey);
-        $body = json_decode($f3->get('BODY'), true);
+        $token = JwtHelper::getBearerToken($f3);
+        $decoded = JwtHelper::validateToken($token, $this->jwtKey); 
+        $bodyEncrypted = json_decode($f3->get('BODY'), true);
+        $bodyDecrypted = AesDecryptor::decrypt(
+            $bodyEncrypted['data'], 
+            getenv('ENCRYPTION_JSON') ?: "TuClaveSuperSecreta@2024"
+        );
+        $body = json_decode($bodyDecrypted, true);
+        if (!$body || !is_array($body)) {
+            $this->errorResponse('Error al procesar los datos', 400);
+            return;
+        }
+
         $transf_id = $body['transf_id'];
         // Solo puede actualizar si es dueño
         $this->m_transferencia->load(['id = ? AND usuario_id = ?', $transf_id, $decoded->data->user_id]);
@@ -105,8 +115,18 @@ class transferencias_controllers extends BaseController
     public function eliminar($f3)
     {
         $token = JwtHelper::getBearerToken($f3);
-        $decoded = JwtHelper::validateToken($token, $this->jwtKey);
-        $body = json_decode($f3->get('BODY'), true);
+        $decoded = JwtHelper::validateToken($token, $this->jwtKey); 
+        $bodyEncrypted = json_decode($f3->get('BODY'), true);
+        $bodyDecrypted = AesDecryptor::decrypt(
+            $bodyEncrypted['data'], 
+            getenv('ENCRYPTION_JSON') ?: "TuClaveSuperSecreta@2024"
+        );
+        $body = json_decode($bodyDecrypted, true);
+        if (!$body || !is_array($body)) {
+            $this->errorResponse('Error al procesar los datos', 400);
+            return;
+        }
+
         $transf_id = $body['transf_id'];
 
         // Solo puede eliminar si es dueño
