@@ -14,6 +14,12 @@ class TransactionsController extends BaseController
         $this->transactionModel = new \m_transacciones();
     }
     
+    // Wrapper to match routes.ini (POST /transactions/register)
+    public function register($f3)
+    {
+        return $this->create($f3);
+    }
+    
     public function create($f3)
     {
         $decoded = $this->requireAuth($f3);

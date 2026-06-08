@@ -16,7 +16,6 @@ class CryptoController extends BaseController
 
     public function encryption($f3)
     {
-        $this->requireAuth($f3);
         $body = $this->parseJsonOrEncryptedBody($f3);
         if (empty($body)) {
             return;
@@ -24,8 +23,12 @@ class CryptoController extends BaseController
 
         $value = $body['value'] ?? $body['text'] ?? null;
         if (!$value) {
-            $this->errorResponse('No se proporcionó valor a cifrar', 400);
-            return;
+            // If no specific `value` provided, encrypt the whole body payload
+            $value = json_encode($body);
+            if ($value === false || $value === 'null' || $value === '') {
+                $this->errorResponse('No se proporcionó valor a cifrar', 400);
+                return;
+            }
         }
 
         try {
@@ -33,7 +36,7 @@ class CryptoController extends BaseController
             $this->successResponse([
                 'original' => $value,
                 'encrypted' => $encrypted
-            ], 'Encrypt successful');
+            ], 'Cifrado correcto');
         } catch (\Exception $e) {
             $this->errorResponse('Error al cifrar: ' . $e->getMessage(), 500);
         }
@@ -41,7 +44,6 @@ class CryptoController extends BaseController
 
     public function decryption($f3)
     {
-        $this->requireAuth($f3);
         $body = $this->parseJsonOrEncryptedBody($f3);
         if (empty($body)) {
             return;
@@ -55,10 +57,13 @@ class CryptoController extends BaseController
 
         try {
             $decrypted = \SecurityHelper::decryptData($encrypted, $this->encryptionKey, $this->iv);
+            // If decrypted payload is JSON, decode it for the response
+            $decoded = json_decode($decrypted, true);
+            $decryptedValue = (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) ? $decoded : $decrypted;
             $this->successResponse([
                 'encrypted' => $encrypted,
-                'decrypted' => $decrypted
-            ], 'Decrypt successful');
+                'decrypted' => $decryptedValue
+            ], 'Descifrado correcto');
         } catch (\Exception $e) {
             $this->errorResponse('Error al desencriptar: ' . $e->getMessage(), 500);
         }

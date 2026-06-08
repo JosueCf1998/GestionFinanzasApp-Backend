@@ -14,6 +14,12 @@ class AccountsController extends BaseController
         $this->accountModel = new \m_cuentas();
     }
 
+    // Wrapper to match routes.ini (POST /accounts/register)
+    public function register($f3)
+    {
+        return $this->create($f3);
+    }
+
     public function create($f3)
     {
         $decoded = $this->requireAuth($f3);
@@ -179,7 +185,7 @@ class AccountsController extends BaseController
         if (count($items) > 0) {
             $this->successResponse(['items' => $items, 'Total' => count($items)]);
         } else {
-            $this->errorResponse('Aún no hay registros que mostrar', 404, ['items' => [], 'Total' => 0]);
+            $this->successResponse('Aún no hay registros que mostrar', 404, ['items' => [], 'Total' => 0]);
         }
     }
 }

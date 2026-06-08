@@ -69,10 +69,23 @@ class BaseController
     {
         $bodyEncrypted = json_decode($f3->get('BODY'), true);
         if (is_array($bodyEncrypted) && isset($bodyEncrypted['data'])) {
-            $bodyDecrypted = \AesDecryptor::decrypt(
-                $bodyEncrypted['data'],
-                getenv('ENCRYPTION_JSON') ?: "TuClaveSuperSecreta@2024"
-            );
+            $dataField = $bodyEncrypted['data'];
+
+            if (!\AesDecryptor::looksEncrypted($dataField)) {
+                $this->errorResponse('El campo "data" no parece estar en formato encriptado válido', 400);
+                return [];
+            }
+
+            try {
+                $bodyDecrypted = \AesDecryptor::decrypt(
+                    $dataField,
+                    getenv('ENCRYPTION_JSON') ?: "TuClaveSuperSecreta@2024"
+                );
+            } catch (\Exception $e) {
+                $this->errorResponse('Error al desencriptar payload JSON: ' . $e->getMessage(), 400);
+                return [];
+            }
+
             $body = json_decode($bodyDecrypted, true);
         } else {
             $body = $bodyEncrypted;

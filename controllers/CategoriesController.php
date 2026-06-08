@@ -14,6 +14,12 @@ class CategoriesController extends BaseController
         $this->categoryModel = new \m_categorias();
     }
 
+    // Wrapper to match routes.ini (POST /categories/register)
+    public function register($f3)
+    {
+        return $this->create($f3);
+    }
+
     public function create($f3)
     {
         $decoded = $this->requireAuth($f3);

@@ -14,6 +14,12 @@ class TransfersController extends BaseController
         $this->transferModel = new \m_transferencias();
     }
 
+    // Wrapper to match routes.ini (POST /transfers/register)
+    public function register($f3)
+    {
+        return $this->create($f3);
+    }
+
     public function create($f3)
     {
         $decoded = $this->requireAuth($f3);

@@ -19,18 +19,27 @@ class UsersController extends BaseController
         $this->validateRequestMethod('POST');
         
         try {
-            $requestData = $this->parseAndValidateRequest($f3->get('BODY'));
-            $emailDecrypt = \AesDecryptor::decrypt(
-                $requestData['email'], 
-                getenv('ENCRYPTION_PASSWORD') ?: "TuClaveSuperSecreta@2024"
-            );
-            $passwordDecrypt = \AesDecryptor::decrypt(
-            $requestData['password'],
-            getenv('ENCRYPTION_PASSWORD') ?: "TuClaveSuperSecreta@2024"
-        );
-            
-            $this->validateUserData($requestData, $emailDecrypt);
-            $this->prepareNewUser($requestData, $emailDecrypt, $passwordDecrypt);
+            // Support both raw JSON and encrypted-body { "data": "..." }
+            $body = $this->parseJsonOrEncryptedBody($f3);
+            if (empty($body)) {
+                return;
+            }
+
+            $requestData = \SecurityHelper::sanitizeInput($body);
+
+            if (!isset($requestData['email']) || !isset($requestData['password'])) {
+                throw new \InvalidArgumentException('Email y/o password no proporcionados', 400);
+            }
+
+            // Asumir que el cliente envía email/password en texto plano (igual que login)
+            $emailPlain = $requestData['email'];
+            $passwordPlain = $requestData['password'];
+
+            // Mantener consistencia con otras funciones: colocar password en requestData
+            $requestData['password'] = $passwordPlain;
+
+            $this->validateUserData($requestData, $emailPlain);
+            $this->prepareNewUser($requestData, $emailPlain, $passwordPlain);
             
             if ($this->userModel->save()) {
                 $this->successResponse([], 'Usuario registrado exitosamente');
@@ -149,18 +158,12 @@ class UsersController extends BaseController
 {
     $this->validateRequestMethod('POST');
 
-    try {
-        $requestData = $this->parseAndValidateRequest($f3->get('BODY'));
+        try {
+            $requestData = $this->parseAndValidateRequest($f3->get('BODY'));
 
-        $emailDecrypt = \AesDecryptor::decrypt(
-            $requestData['email'],
-            getenv('ENCRYPTION_PASSWORD') ?: "TuClaveSuperSecreta@2024"
-        );
-
-        $newPasswordDecrypt = \AesDecryptor::decrypt(
-            $requestData['new_password'],
-            getenv('ENCRYPTION_PASSWORD') ?: "TuClaveSuperSecreta@2024"
-        );
+            // Asumir email y new_password en texto plano (igual que login)
+            $emailDecrypt = $requestData['email'];
+            $newPasswordDecrypt = $requestData['new_password'];
 
         $emailEncrypted = \SecurityHelper::encryptData($emailDecrypt, $this->encryptionKey, $this->iv);
         $this->userModel->load(['email = ?', $emailEncrypted]);
@@ -250,6 +253,12 @@ public function listAll($f3)
     }
 }
 
+    // Wrapper to match routes.ini (GET /users/list)
+    public function list($f3)
+    {
+        return $this->listAll($f3);
+    }
+
 
     protected function validateToken($f3)
         {
@@ -323,9 +332,11 @@ public function listAll($f3)
     $userData = $this->userModel->cast();
 
     try {
-        $userData['email'] = \AesDecryptor::decrypt(
+        // Los emails en BD se cifran con SecurityHelper::encryptData
+        $userData['email'] = \SecurityHelper::decryptData(
             $userData['email'],
-            getenv('ENCRYPTION_PASSWORD') ?: "TuClaveSuperSecreta@2024"
+            $this->encryptionKey,
+            $this->iv
         );
     } catch (\Exception $e) {
         $userData['email'] = 'Error al desencriptar';
