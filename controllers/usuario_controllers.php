@@ -87,66 +87,75 @@ class usuario_controllers extends BaseController
 
 
     public function login($f3)
-{
-    $this->validateRequestMethod('POST');
+    {
+        $this->validateRequestMethod('POST');
 
-    try {
-        $requestData = $this->parseAndValidateRequest($f3->get('BODY'));
+        try {
+            // Aceptar payload en forma { "data": "..." } o JSON directo { "email":"...","password":"..." }
+            $bodyEncrypted = json_decode($f3->get('BODY'), true);
+            if (is_array($bodyEncrypted) && isset($bodyEncrypted['data'])) {
+                $bodyDecrypted = AesDecryptor::decrypt(
+                    $bodyEncrypted['data'],
+                    getenv('ENCRYPTION_JSON') ?: "TuClaveSuperSecreta@2024"
+                );
+                $body = json_decode($bodyDecrypted, true);
+            } else {
+                $body = $bodyEncrypted;
+            }
 
-        $emailDecrypt = AesDecryptor::decrypt(
-            $requestData['email'],
-            getenv('ENCRYPTION_PASSWORD') ?: "TuClaveSuperSecreta@2024"
-        );
+            if (!$body || !is_array($body)) {
+                $this->errorResponse('Error al procesar los datos', 400);
+                return;
+            }
 
-         $passwordDecrypt = AesDecryptor::decrypt(
-            $requestData['password'],
-            getenv('ENCRYPTION_PASSWORD') ?: "TuClaveSuperSecreta@2024"
-        );
-        
-         $emailEncrypted = SecurityHelper::encryptData($emailDecrypt, $this->encryptionKey, $this->iv);
+            if (empty($body['email']) || empty($body['password'])) {
+                throw new InvalidArgumentException('Email y/o password no proporcionados', 400);
+            }
 
-        // Buscar usuario
+            // En este flujo, el email/password ya vienen en claro desde el payload desencriptado
+            $emailPlain = $body['email'];
+            $passwordPlain = $body['password'];
+
+            $emailEncrypted = SecurityHelper::encryptData($emailPlain, $this->encryptionKey, $this->iv);
+
+        // Buscar usuario por email encriptado
         $this->userModel->load(['email = ?', $emailEncrypted]);
 
-        if (!$this->userModel->loaded()) {
-            throw new RuntimeException('Credenciales inválidas.', 401);
-        }
-
-        // Validar Usuario
-        $usuarios = $this->userModel->find();
         $usuarioEncontrado = null;
-
-        foreach ($usuarios as $usuario) {
-            try {
-                $emailBD = SecurityHelper::decryptData($usuario->email, $this->encryptionKey, $this->iv);
-                if ($emailBD === $emailDecrypt) {
-                    $usuarioEncontrado = $usuario;
-                    break;
+        if ($this->userModel->loaded()) {
+            $usuarioEncontrado = $this->userModel;
+        } else {
+            // Fallback: recorrer usuarios y comparar desencriptando
+            $usuarios = $this->userModel->find();
+            foreach ($usuarios as $usuario) {
+                try {
+                    $emailBD = SecurityHelper::decryptData($usuario->email, $this->encryptionKey, $this->iv);
+                    if ($emailBD === $emailPlain) {
+                        $usuarioEncontrado = $usuario;
+                        break;
+                    }
+                } catch (Exception $e) {
+                    continue;
                 }
-            } catch (Exception $e) {
-                continue;
             }
         }
 
         if (!$usuarioEncontrado) {
             throw new RuntimeException('Credenciales inválidas.', 401);
         }
+
         // Validar contraseña
-        if (!password_verify($passwordDecrypt, $usuarioEncontrado->password)) {
+        if (!password_verify($passwordPlain, $usuarioEncontrado->password)) {
             throw new RuntimeException('Credenciales inválidas.', 401);
         }
-        
-        $this->userModel->reset();
-        $this->userModel->set('email', $emailEncrypted);
-        $this->userModel->set('password', password_hash($requestData['password'], PASSWORD_BCRYPT));
-        
-         // Generar token
+
+        // Generar token
         $token = JwtHelper::generateToken([
-        'data' => [
-        'user_id' => $usuarioEncontrado->id,  // 👈 usar $usuarioEncontrado
-        'email' => $emailDecrypt
-        ]
-    ], $this->jwtKey);
+            'data' => [
+                'user_id' => $usuarioEncontrado->id,
+                'email' => $emailPlain
+            ]
+        ], $this->jwtKey);
 
         // Guardar sesión
         SessionHelper::createSession($f3, (int)$usuarioEncontrado->id, $token);
