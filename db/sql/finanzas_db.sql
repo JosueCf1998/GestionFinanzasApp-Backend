@@ -2,10 +2,10 @@
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Servidor: 127.0.0.1
--- Tiempo de generación: 07-10-2025 a las 07:32:49
--- Versión del servidor: 10.4.32-MariaDB
--- Versión de PHP: 8.2.12
+-- Servidor: localhost
+-- Tiempo de generación: 09-06-2026 a las 08:27:23
+-- Versión del servidor: 10.4.28-MariaDB
+-- Versión de PHP: 8.0.28
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -72,7 +72,8 @@ CREATE TABLE `cuentas` (
 
 INSERT INTO `cuentas` (`id`, `usuario_id`, `nombre`, `saldo`, `icon`, `color`) VALUES
 (19, 64, 'Ahorro', 3500.00, 'money', '#afb42b'),
-(20, 64, 'Sueldo', 8500.00, 'money', '#afb42b');
+(20, 64, 'Sueldo', 8500.00, 'money', '#afb42b'),
+(24, 66, 'Principal', 100.00, 'bills', '#afb42b');
 
 -- --------------------------------------------------------
 
@@ -93,7 +94,14 @@ CREATE TABLE `sesiones` (
 --
 
 INSERT INTO `sesiones` (`id`, `user_id`, `token`, `ultimo_uso`, `creado_en`) VALUES
-(91, 64, 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjY0LCJlbWFpbCI6ImdveWl0bzE0MTBAZ21haWwuY29tIn0sImlhdCI6MTc1OTgwOTQ0NywiZXhwIjoxODU5ODA5NDQ3fQ.GYCMeVxEEZItpShIaiprECz38TK7EyerVE07WXZQhHA', '2025-10-07 05:57:27', '2025-10-07 05:57:27');
+(91, 64, 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjY0LCJlbWFpbCI6ImdveWl0bzE0MTBAZ21haWwuY29tIn0sImlhdCI6MTc1OTgwOTQ0NywiZXhwIjoxODU5ODA5NDQ3fQ.GYCMeVxEEZItpShIaiprECz38TK7EyerVE07WXZQhHA', '2025-10-07 05:57:27', '2025-10-07 05:57:27'),
+(92, 66, 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjY2LCJlbWFpbCI6Impvc3VlQGdtYWlsLmNvbSJ9LCJpYXQiOjE3ODA5MDg0NTAsImV4cCI6MTg4MDkwODQ1MH0.0vrjsuGuhPCUqFcJKLo0SSppC8rzWiWl5f0nVx40C1g', '2026-06-08 10:47:30', '2026-06-08 10:47:30'),
+(93, 66, 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjY2LCJlbWFpbCI6Impvc3VlQGdtYWlsLmNvbSJ9LCJpYXQiOjE3ODA5MDk5MDQsImV4cCI6MTg4MDkwOTkwNH0.wfmy4kn9PpGbZd6usJwWAqu0qCcTJdyNPrA7JQiL1a0', '2026-06-08 11:11:44', '2026-06-08 11:11:44'),
+(94, 66, 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjY2LCJlbWFpbCI6Impvc3VlQGdtYWlsLmNvbSJ9LCJpYXQiOjE3ODA5MTAxMDIsImV4cCI6MTg4MDkxMDEwMn0.EegfFNPvVz9ZFrKznOesiK-4cjyf69HQAyJNhxK8POw', '2026-06-08 11:15:02', '2026-06-08 11:15:02'),
+(95, 66, 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjY2LCJlbWFpbCI6Impvc3VlQGdtYWlsLmNvbSJ9LCJpYXQiOjE3ODA5MTE1MDksImV4cCI6MTg4MDkxMTUwOX0.w4m99HxYVP4tjnB-FaiK7JNv-AZ7EZLYpcCxHq0rzq4', '2026-06-08 11:38:29', '2026-06-08 11:38:29'),
+(96, 66, 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjY2LCJlbWFpbCI6Impvc3VlQGdtYWlsLmNvbSJ9LCJpYXQiOjE3ODA5MTQxNjMsImV4cCI6MTg4MDkxNDE2M30.TxT5a0oCZRUFLqLdwwJk4A4cRIkT3dG1mk4fY0bD6Ac', '2026-06-08 12:22:43', '2026-06-08 12:22:43'),
+(97, 66, 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjY2LCJlbWFpbCI6Impvc3VlQGdtYWlsLmNvbSJ9LCJpYXQiOjE3ODA5MTQ0ODgsImV4cCI6MTg4MDkxNDQ4OH0.FnxFqp-7l9yXwxwW_3XXc7kMBHsy23SZDjkeGo8VTzw', '2026-06-08 12:39:31', '2026-06-08 12:28:08'),
+(98, 66, 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjY2LCJlbWFpbCI6Impvc3VlQGdtYWlsLmNvbSJ9LCJpYXQiOjE3ODA5MTY4MjEsImV4cCI6MTg4MDkxNjgyMX0.6DoFvfUPIFT1bz4oUhxwf4qnIXRsizpPiQRZOcNdQ5M', '2026-06-08 13:07:01', '2026-06-08 13:07:01');
 
 -- --------------------------------------------------------
 
@@ -125,15 +133,17 @@ CREATE TABLE `transferencias` (
   `cuenta_id_destino` int(11) DEFAULT NULL,
   `cuenta_id_origen` int(11) DEFAULT NULL,
   `monto` decimal(10,2) DEFAULT NULL,
-  `comentario` text DEFAULT NULL
+  `comentario` text DEFAULT NULL,
+  `tipo_transferencia` varchar(40) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Volcado de datos para la tabla `transferencias`
 --
 
-INSERT INTO `transferencias` (`id`, `usuario_id`, `fecha`, `cuenta_id_destino`, `cuenta_id_origen`, `monto`, `comentario`) VALUES
-(12, 64, '2025-10-07', 20, 19, 150.75, 'Transferencia de prueba');
+INSERT INTO `transferencias` (`id`, `usuario_id`, `fecha`, `cuenta_id_destino`, `cuenta_id_origen`, `monto`, `comentario`, `tipo_transferencia`) VALUES
+(12, 64, '2025-10-07', 20, 19, 150.75, 'Transferencia de prueba', ''),
+(16, 66, '2026-06-08', 24, NULL, 100.00, 'Saldo inicial de la cuenta', 'Inicial');
 
 -- --------------------------------------------------------
 
@@ -155,7 +165,8 @@ CREATE TABLE `usuarios` (
 --
 
 INSERT INTO `usuarios` (`id`, `nombre`, `apellidos`, `email`, `password`, `fecha_registro`) VALUES
-(64, 'Goyito', 'Bonifas', '+nZsw72WYeRHcpVXyOSsRueBJkd+P6BgvgYV0TNrQNQ=', '$2y$10$oAve7HnwmuMPmsCO47C9qOjUXxqQGcPiZS5hM0hnb0uLl5cS.5b.S', '2025-10-07 10:55:06');
+(64, 'Goyito', 'Bonifas', '+nZsw72WYeRHcpVXyOSsRueBJkd+P6BgvgYV0TNrQNQ=', '$2y$10$oAve7HnwmuMPmsCO47C9qOjUXxqQGcPiZS5hM0hnb0uLl5cS.5b.S', '2025-10-07 10:55:06'),
+(66, 'josue1', 'Coronel', 'z5nqAkS+SXGeZvlStxYNfA==', '$2y$10$2NnyKrLQbxEFk.Lc3uKaEuHtFLFwS0O0wL8bQyatjyURzKNMp2WY.', '2026-06-08 14:12:22');
 
 --
 -- Índices para tablas volcadas
@@ -224,13 +235,13 @@ ALTER TABLE `categorias`
 -- AUTO_INCREMENT de la tabla `cuentas`
 --
 ALTER TABLE `cuentas`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
 
 --
 -- AUTO_INCREMENT de la tabla `sesiones`
 --
 ALTER TABLE `sesiones`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=92;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=99;
 
 --
 -- AUTO_INCREMENT de la tabla `transacciones`
@@ -242,13 +253,13 @@ ALTER TABLE `transacciones`
 -- AUTO_INCREMENT de la tabla `transferencias`
 --
 ALTER TABLE `transferencias`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT de la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=65;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=67;
 
 --
 -- Restricciones para tablas volcadas
