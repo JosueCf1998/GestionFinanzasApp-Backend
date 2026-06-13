@@ -71,46 +71,51 @@ class UsersController extends BaseController
 
             $emailEncrypted = \SecurityHelper::encryptData($emailPlain, $this->encryptionKey, $this->iv);
 
-        $this->userModel->load(['email = ?', $emailEncrypted]);
+            $this->userModel->load(['email = ?', $emailEncrypted]);
 
-        $usuarioEncontrado = null;
-        if ($this->userModel->loaded()) {
-            $usuarioEncontrado = $this->userModel;
-        } else {
-            $usuarios = $this->userModel->find();
-            foreach ($usuarios as $usuario) {
-                try {
-                    $emailBD = \SecurityHelper::decryptData($usuario->email, $this->encryptionKey, $this->iv);
-                    if ($emailBD === $emailPlain) {
-                        $usuarioEncontrado = $usuario;
-                        break;
+            $usuarioEncontrado = null;
+            if ($this->userModel->loaded()) {
+                $usuarioEncontrado = $this->userModel;
+            } else {
+                $usuarios = $this->userModel->find();
+                foreach ($usuarios as $usuario) {
+                    try {
+                        $emailBD = \SecurityHelper::decryptData($usuario->email, $this->encryptionKey, $this->iv);
+                        if ($emailBD === $emailPlain) {
+                            $usuarioEncontrado = $usuario;
+                            break;
+                        }
+                    } catch (\Exception $e) {
+                        continue;
                     }
-                } catch (\Exception $e) {
-                    continue;
                 }
             }
-        }
 
-        if (!$usuarioEncontrado) {
-            throw new \RuntimeException('Credenciales inválidas.', 401);
-        }
+            if (!$usuarioEncontrado) {
+                throw new \RuntimeException('Credenciales inválidas.', 401);
+            }
 
-        if (!password_verify($passwordPlain, $usuarioEncontrado->password)) {
-            throw new \RuntimeException('Credenciales inválidas.', 401);
-        }
+            if (!password_verify($passwordPlain, $usuarioEncontrado->password)) {
+                throw new \RuntimeException('Credenciales inválidas.', 401);
+            }
 
-        $token = \JwtHelper::generateToken([
-            'data' => [
-                'user_id' => $usuarioEncontrado->id,
-                'email' => $emailPlain
-            ]
-        ], $this->jwtKey);
+            $accountModel = new \m_cuentas();
+            $accountsCount = $accountModel->count(['usuario_id = ?', (int)$usuarioEncontrado->id]);
+            $isFirstTime = $accountsCount === 0;
 
-        \SessionHelper::createSession($f3, (int)$usuarioEncontrado->id, $token);
+            $token = \JwtHelper::generateToken([
+                'data' => [
+                    'user_id' => $usuarioEncontrado->id,
+                    'email' => $emailPlain
+                ]
+            ], $this->jwtKey);
 
-        $this->successResponse([
-            'token' => $token,
-        ], 'Login exitoso');
+            \SessionHelper::createSession($f3, (int)$usuarioEncontrado->id, $token);
+
+            $this->successResponse([
+                'token' => $token,
+                'isFirstTime' => $isFirstTime,
+            ], 'Login exitoso');
         
     } catch (\Exception $e) {
         $this->handleError($e);
