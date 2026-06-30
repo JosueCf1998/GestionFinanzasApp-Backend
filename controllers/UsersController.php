@@ -115,6 +115,7 @@ class UsersController extends BaseController
             $this->successResponse([
                 'token' => $token,
                 'isFirstTime' => $isFirstTime,
+                'name' => $usuarioEncontrado->nombre,
             ], 'Login exitoso');
         
     } catch (\Exception $e) {
