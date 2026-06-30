@@ -28,7 +28,7 @@ $options = array(
     \PDO::MYSQL_ATTR_COMPRESS => true
 );
 // Crear la conexión a la base de datos
-$db = new \DB\SQL('mysql:host=localhost;port=3306;dbname=finanzas_db', 'root', ''); // cambia "tu_basedatos"
+$db = new \DB\SQL('mysql:host=localhost;port=3306;dbname=u992910078_finanzas_db', 'root', 'root'); // cambia "tu_basedatos"
 $f3->set('DB', $db);
 
 
