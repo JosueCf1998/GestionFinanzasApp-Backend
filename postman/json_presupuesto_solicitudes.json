@@ -1,0 +1,21 @@
+{
+  "create_budget": {
+    "name": "Alimentación",
+    "amount": 800,
+    "period": "monthly",
+    "start_date": "2025-05-01",
+    "category_id": 3,
+    "notes": "Presupuesto para compras de comida y supermercado.",
+    "status": "active"
+  },
+  "update_budget": {
+    "id": 12,
+    "name": "Alimentación",
+    "amount": 850,
+    "period": "monthly",
+    "start_date": "2025-05-01",
+    "category_id": 3,
+    "notes": "Ajuste por incremento de compras del mes.",
+    "status": "active"
+  }
+}

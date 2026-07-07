@@ -1,0 +1,184 @@
+{
+  "summary_response": {
+    "status": "success",
+    "message": "Budget summary generated successfully",
+    "data": {
+      "totals": {
+        "budgeted": 6500,
+        "spent": 2705.75,
+        "remaining": 3794.25,
+        "usage_percent": 41.63
+      },
+      "items": [
+        {
+          "id": 1,
+          "name": "Alimentación",
+          "budgeted": 800,
+          "spent": 420.5,
+          "remaining": 379.5,
+          "progress_percent": 52.56,
+          "is_overspent": false
+        },
+        {
+          "id": 2,
+          "name": "Alquiler",
+          "budgeted": 1500,
+          "spent": 1500,
+          "remaining": 0,
+          "progress_percent": 100,
+          "is_overspent": false
+        },
+        {
+          "id": 3,
+          "name": "Transporte",
+          "budgeted": 150,
+          "spent": 65.25,
+          "remaining": 84.75,
+          "progress_percent": 43.5,
+          "is_overspent": false
+        },
+        {
+          "id": 4,
+          "name": "Entretenimiento",
+          "budgeted": 200,
+          "spent": 30,
+          "remaining": 170,
+          "progress_percent": 15,
+          "is_overspent": false
+        },
+        {
+          "id": 5,
+          "name": "Salud",
+          "budgeted": 450,
+          "spent": 120,
+          "remaining": 330,
+          "progress_percent": 26.67,
+          "is_overspent": false
+        },
+        {
+          "id": 6,
+          "name": "Educación",
+          "budgeted": 900,
+          "spent": 620,
+          "remaining": 280,
+          "progress_percent": 68.89,
+          "is_overspent": false
+        },
+        {
+          "id": 7,
+          "name": "Hogar",
+          "budgeted": 1200,
+          "spent": 250,
+          "remaining": 950,
+          "progress_percent": 20.83,
+          "is_overspent": false
+        }
+      ],
+      "total_active_budgets": 7
+    }
+  },
+  "list_response": {
+    "status": "success",
+    "message": "Budget list generated successfully",
+    "data": {
+      "total": 4,
+      "items": [
+        {
+          "id": 1,
+          "user_id": 10,
+          "category_id": 3,
+          "name": "Alimentación",
+          "amount": 800,
+          "period": "monthly",
+          "start_date": "2025-05-01",
+          "end_date": "2025-05-31",
+          "status": "active",
+          "notes": "Presupuesto para compras de comida y supermercado.",
+          "spent": 420.5,
+          "remaining": 379.5,
+          "progress_percent": 52.56,
+          "is_overspent": false
+        },
+        {
+          "id": 2,
+          "user_id": 10,
+          "category_id": 7,
+          "name": "Alquiler",
+          "amount": 1500,
+          "period": "monthly",
+          "start_date": "2025-05-01",
+          "end_date": "2025-05-31",
+          "status": "active",
+          "notes": null,
+          "spent": 1500,
+          "remaining": 0,
+          "progress_percent": 100,
+          "is_overspent": false
+        },
+        {
+          "id": 3,
+          "user_id": 10,
+          "category_id": 9,
+          "name": "Transporte",
+          "amount": 150,
+          "period": "weekly",
+          "start_date": "2025-05-12",
+          "end_date": "2025-05-18",
+          "status": "active",
+          "notes": "Combustible y transporte público.",
+          "spent": 65.25,
+          "remaining": 84.75,
+          "progress_percent": 43.5,
+          "is_overspent": false
+        },
+        {
+          "id": 4,
+          "user_id": 10,
+          "category_id": 12,
+          "name": "Entretenimiento",
+          "amount": 200,
+          "period": "monthly",
+          "start_date": "2025-05-01",
+          "end_date": "2025-05-31",
+          "status": "active",
+          "notes": null,
+          "spent": 30,
+          "remaining": 170,
+          "progress_percent": 15,
+          "is_overspent": false
+        }
+      ]
+    }
+  },
+  "detail_response": {
+    "status": "success",
+    "message": "Budget detail generated successfully",
+    "data": {
+      "id": 1,
+      "user_id": 10,
+      "category_id": 3,
+      "name": "Alimentación",
+      "amount": 800,
+      "period": "monthly",
+      "start_date": "2025-05-01",
+      "end_date": "2025-05-31",
+      "status": "active",
+      "notes": "Presupuesto para compras de comida y supermercado.",
+      "spent": 420.5,
+      "remaining": 379.5,
+      "progress_percent": 52.56,
+      "is_overspent": false,
+      "information": {
+        "period_label": "Mensual",
+        "start_date_label": "01 may. 2025",
+        "end_date_label": "31 may. 2025",
+        "category_label": "Alimentación"
+      },
+      "spending_summary": {
+        "spent": 420.5,
+        "remaining": 379.5,
+        "usage_percent": 52.56
+      }
+    }
+  }
+}

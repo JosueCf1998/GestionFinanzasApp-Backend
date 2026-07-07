@@ -1,0 +1,39 @@
+{
+  "category_summary_response": {
+    "status": "success",
+    "message": "Budget category summary generated successfully",
+    "data": {
+      "usage_total_percent": 51,
+      "items": [
+        {
+          "name": "Alimentación",
+          "spent": 420.5,
+          "budgeted": 800,
+          "usage_percent": 52.56,
+          "color": "#22c55e"
+        },
+        {
+          "name": "Alquiler",
+          "spent": 1500,
+          "budgeted": 1500,
+          "usage_percent": 100,
+          "color": "#8b5cf6"
+        },
+        {
+          "name": "Transporte",
+          "spent": 65.25,
+          "budgeted": 150,
+          "usage_percent": 43.5,
+          "color": "#f59e0b"
+        },
+        {
+          "name": "Entretenimiento",
+          "spent": 30,
+          "budgeted": 200,
+          "usage_percent": 15,
+          "color": "#3b82f6"
+        }
+      ]
+    }
+  }
+}
