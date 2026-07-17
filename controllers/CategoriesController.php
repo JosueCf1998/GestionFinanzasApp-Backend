@@ -136,4 +136,26 @@ class CategoriesController extends BaseController
             $this->errorResponse('Aún no hay registros que mostrar', 404, ['items' => [], 'Total' => 0]);
         }
     }
+
+    // CAMBIO: endpoint especifico para modulo de presupuestos.
+    // Devuelve categorias de gasto (globales + del usuario) para los multi-selects.
+    public function budgetList($f3)
+    {
+        $decoded = $this->requireAuth($f3);
+        $result = $this->categoryModel->find([
+            '(usuario_id = ? OR usuario_id IS NULL) AND LOWER(COALESCE(tipo, "")) IN ("gasto", "expense", "egreso")',
+            $decoded->data->user_id
+        ]);
+
+        $items = [];
+        foreach ($result as $categoria) {
+            $items[] = $categoria->cast();
+        }
+
+        $this->successResponse([
+            'items' => $items,
+            'Total' => count($items),
+            'mensaje' => 'Listado de categorías para presupuestos'
+        ]);
+    }
 }

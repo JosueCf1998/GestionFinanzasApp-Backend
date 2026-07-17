@@ -57,8 +57,17 @@ class BaseController
 
     protected function requireAuth($f3)
     {
-        $token = \JwtHelper::getBearerToken($f3);
-        return \JwtHelper::validateToken($token, $this->jwtKey);
+        try {
+            $token = \JwtHelper::getBearerToken($f3);
+            return \JwtHelper::validateToken($token, $this->jwtKey);
+        } catch (\RuntimeException $e) {
+            $code = (int)($e->getCode() ?: 401);
+            $this->errorResponse($e->getMessage(), $code);
+        } catch (\Exception $e) {
+            $this->errorResponse('No se pudo validar la autenticación.', 401);
+        }
+
+        return null;
     }
 
     /**

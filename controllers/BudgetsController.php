@@ -16,318 +16,1282 @@ class BudgetsController extends BaseController
         $this->transactionDateColumn = null;
     }
 
-    // Wrapper to match routes.ini (POST /budgets/register)
     public function register($f3)
     {
-        return $this->create($f3);
-    }
-
-    public function create($f3)
-    {
         $decoded = $this->requireAuth($f3);
+        if (!$decoded) {
+            return;
+        }
+
         $body = $this->parseJsonOrEncryptedBody($f3);
         if (empty($body)) {
             return;
         }
 
-        $validation = $this->validateBudgetPayload($body, false);
-        if ($validation !== true) {
+        $payload = $this->normalizeBudgetInput($body, null);
+
+        if (!$this->validateBudgetPayload($payload)) {
             return;
         }
 
-        $resolvedEndDate = $this->resolveEndDate(
-            $body['period'],
-            $body['start_date'],
-            $body['end_date'] ?? null
+        $userId = (int)$decoded->data->user_id;
+        $validCategories = $this->filterAndValidateCategoryItems(
+            $payload['categories'],
+            $userId
         );
 
-        if ($resolvedEndDate === null) {
-            $this->errorResponse('Invalid period/end_date combination', 400);
+        if ($validCategories === null) {
             return;
         }
 
-        $this->budgetModel->set('user_id', $decoded->data->user_id);
-        $this->budgetModel->set('category_id', $body['category_id'] ?? null);
-        $this->budgetModel->set('name', trim($body['name']));
-        $this->budgetModel->set('amount', $body['amount']);
-        $this->budgetModel->set('period', strtolower($body['period']));
-        $this->budgetModel->set('start_date', $body['start_date']);
-        $this->budgetModel->set('end_date', $resolvedEndDate);
-        $this->budgetModel->set('status', strtolower($body['status'] ?? 'active'));
-        $this->budgetModel->set('notes', $body['notes'] ?? null);
+        $validAccountIds = $this->filterValidAccountIds(
+            $payload['account_ids'],
+            $userId
+        );
 
-        if ($this->budgetModel->save()) {
+        if (count($validAccountIds) !== count($payload['account_ids'])) {
+            $this->errorResponse(
+                'Una o más cuentas no existen o no pertenecen al usuario',
+                400
+            );
+            return;
+        }
+
+        $totalAmount = $this->calculateBudgetTotal($validCategories);
+
+        $endDate = $this->resolveEndDate(
+            $payload['period'],
+            $payload['start_date']
+        );
+
+        if ($endDate === null) {
+            $this->errorResponse('No se pudo calcular la fecha final', 400);
+            return;
+        }
+
+        $db = \Base::instance()->get('DB');
+
+        try {
+            $db->begin();
+
+            $this->budgetModel->reset();
+            $this->budgetModel->set('user_id', $userId);
+            $this->budgetModel->set('budget_series_id', null);
+            $this->budgetModel->set('name', $payload['name']);
+            $this->budgetModel->set('amount', $totalAmount);
+            $this->budgetModel->set('period', $payload['period']);
+            $this->budgetModel->set('start_date', $payload['start_date']);
+            $this->budgetModel->set('end_date', $endDate);
+            $this->budgetModel->set(
+                'repeat_budget',
+                $payload['repeat_budget'] ? 1 : 0
+            );
+            $this->budgetModel->set('status', $payload['status']);
+            $this->budgetModel->set('notes', $payload['notes']);
+
+            if (!$this->budgetModel->save()) {
+                throw new \RuntimeException(
+                    'No se pudo guardar el presupuesto'
+                );
+            }
+
+            $budgetId = (int)$this->budgetModel->get('id');
+
+            // Cada presupuesto inicia una serie propia.
+            $this->setBudgetSeriesId($budgetId, $budgetId);
+
+            $this->syncBudgetCategoryItems(
+                $budgetId,
+                $validCategories
+            );
+
+            $this->syncBudgetAccounts(
+                $budgetId,
+                $validAccountIds
+            );
+
+            $db->commit();
+
             $this->successResponse([
-                'message' => 'Budget created successfully',
-                'info' => [
-                    'id' => $this->budgetModel->get('id')
-                ]
+                'message' => 'Presupuesto creado correctamente'
             ]);
-        } else {
-            $this->errorResponse('Could not create budget', 500);
+        } catch (\Throwable $e) {
+            $db->rollback();
+            $this->errorResponse(
+                'No se pudo crear el presupuesto: ' . $e->getMessage(),
+                500
+            );
         }
     }
 
+    /**
+     * PUT/PATCH /budgets/update
+     *
+     * Permite editar nombre, periodo, fecha, repetición, cuentas y
+     * categorías con sus montos. El total se vuelve a calcular.
+     */
     public function update($f3)
     {
         $decoded = $this->requireAuth($f3);
+        if (!$decoded) {
+            return;
+        }
+
         $body = $this->parseJsonOrEncryptedBody($f3);
         if (empty($body)) {
             return;
         }
 
-        $budgetId = $body['budget_id'] ?? $body['id'] ?? null;
-        if (!$budgetId) {
-            $this->errorResponse('Budget id is required', 400);
+        $budgetId = (int)($body['budget_id'] ?? $body['id'] ?? 0);
+        if ($budgetId <= 0) {
+            $this->errorResponse('El ID del presupuesto es obligatorio', 400);
             return;
         }
 
-        $this->budgetModel->load(['id = ? AND user_id = ?', $budgetId, $decoded->data->user_id]);
+        $userId = (int)$decoded->data->user_id;
+
+        $this->budgetModel->load([
+            'id = ? AND user_id = ?',
+            $budgetId,
+            $userId
+        ]);
+
         if (!$this->budgetModel->loaded()) {
-            $this->errorResponse('Budget not found or not accessible', 404);
+            $this->errorResponse(
+                'El presupuesto no existe o no pertenece al usuario',
+                404
+            );
             return;
         }
 
         $current = $this->budgetModel->cast();
+        $current['account_ids'] = $this->getBudgetAccountIds($budgetId);
+        $current['categories'] = $this->getBudgetCategoryItems($budgetId);
 
-        $payload = [
-            'name' => $body['name'] ?? $current['name'],
-            'amount' => $body['amount'] ?? $current['amount'],
-            'period' => $body['period'] ?? $current['period'],
-            'start_date' => $body['start_date'] ?? $current['start_date'],
-            'end_date' => array_key_exists('end_date', $body) ? $body['end_date'] : $current['end_date'],
-            'status' => $body['status'] ?? $current['status'],
-            'category_id' => array_key_exists('category_id', $body) ? $body['category_id'] : $current['category_id'],
-            'notes' => array_key_exists('notes', $body) ? $body['notes'] : $current['notes']
-        ];
+        $payload = $this->normalizeBudgetInput($body, $current);
 
-        $validation = $this->validateBudgetPayload($payload, true);
-        if ($validation !== true) {
+        if (!$this->validateBudgetPayload($payload)) {
             return;
         }
 
-        $resolvedEndDate = $this->resolveEndDate(
-            $payload['period'],
-            $payload['start_date'],
-            $payload['end_date']
+        $validCategories = $this->filterAndValidateCategoryItems(
+            $payload['categories'],
+            $userId
         );
 
-        if ($resolvedEndDate === null) {
-            $this->errorResponse('Invalid period/end_date combination', 400);
+        if ($validCategories === null) {
             return;
         }
 
-        $this->budgetModel->set('category_id', $payload['category_id']);
-        $this->budgetModel->set('name', trim($payload['name']));
-        $this->budgetModel->set('amount', $payload['amount']);
-        $this->budgetModel->set('period', strtolower($payload['period']));
-        $this->budgetModel->set('start_date', $payload['start_date']);
-        $this->budgetModel->set('end_date', $resolvedEndDate);
-        $this->budgetModel->set('status', strtolower($payload['status']));
-        $this->budgetModel->set('notes', $payload['notes']);
-        $this->budgetModel->save();
+        $validAccountIds = $this->filterValidAccountIds(
+            $payload['account_ids'],
+            $userId
+        );
 
-        $this->successResponse([
-            'message' => 'Budget updated successfully',
-            'info' => ['id' => $this->budgetModel->get('id')]
-        ]);
+        if (count($validAccountIds) !== count($payload['account_ids'])) {
+            $this->errorResponse(
+                'Una o más cuentas no existen o no pertenecen al usuario',
+                400
+            );
+            return;
+        }
+
+        $totalAmount = $this->calculateBudgetTotal($validCategories);
+        $endDate = $this->resolveEndDate(
+            $payload['period'],
+            $payload['start_date']
+        );
+
+        if ($endDate === null) {
+            $this->errorResponse('No se pudo calcular la fecha final', 400);
+            return;
+        }
+
+        $db = \Base::instance()->get('DB');
+
+        try {
+            $db->begin();
+            $this->budgetModel->set('name', $payload['name']);
+            $this->budgetModel->set('amount', $totalAmount);
+            $this->budgetModel->set('period', $payload['period']);
+            $this->budgetModel->set('start_date', $payload['start_date']);
+            $this->budgetModel->set('end_date', $endDate);
+            $this->budgetModel->set(
+                'repeat_budget',
+                $payload['repeat_budget'] ? 1 : 0
+            );
+            $this->budgetModel->set('status', $payload['status']);
+            $this->budgetModel->set('notes', $payload['notes']);
+
+            if (!$this->budgetModel->save()) {
+                throw new \RuntimeException(
+                    'No se pudo actualizar el presupuesto'
+                );
+            }
+
+            $this->syncBudgetCategoryItems(
+                $budgetId,
+                $validCategories
+            );
+
+            $this->syncBudgetAccounts(
+                $budgetId,
+                $validAccountIds
+            );
+
+            $db->commit();
+
+            $this->successResponse([
+                'message' => 'Presupuesto actualizado correctamente'
+            ]);
+        } catch (\Throwable $e) {
+            $db->rollback();
+            $this->errorResponse(
+                'No se pudo actualizar el presupuesto: ' . $e->getMessage(),
+                500
+            );
+        }
     }
 
     public function delete($f3)
     {
         $decoded = $this->requireAuth($f3);
+        if (!$decoded) {
+            return;
+        }
+
         $body = $this->parseJsonOrEncryptedBody($f3);
         if (empty($body)) {
             return;
         }
 
-        $budgetId = $body['budget_id'] ?? $body['id'] ?? null;
-        if (!$budgetId) {
-            $this->errorResponse('Budget id is required', 400);
+        $budgetId = (int)($body['budget_id'] ?? $body['id'] ?? 0);
+        if ($budgetId <= 0) {
+            $this->errorResponse('El ID del presupuesto es obligatorio', 400);
             return;
         }
 
-        $this->budgetModel->load(['id = ? AND user_id = ?', $budgetId, $decoded->data->user_id]);
+        $this->budgetModel->load([
+            'id = ? AND user_id = ?',
+            $budgetId,
+            (int)$decoded->data->user_id
+        ]);
 
-        if ($this->budgetModel->loaded()) {
-            $this->budgetModel->erase();
-            $this->successResponse([
-                'message' => 'Budget deleted successfully',
-                'info' => ['id' => (int)$budgetId]
-            ]);
-        } else {
-            $this->errorResponse('Budget not found or not accessible', 404);
+        if (!$this->budgetModel->loaded()) {
+            $this->errorResponse(
+                'El presupuesto no existe o no pertenece al usuario',
+                404
+            );
+            return;
         }
+
+        if (!$this->budgetModel->erase()) {
+            $this->errorResponse('No se pudo eliminar el presupuesto', 500);
+            return;
+        }
+
+        $this->successResponse([
+            'message' => 'Presupuesto eliminado correctamente',
+            'info' => ['id' => $budgetId]
+        ]);
     }
 
+    /**
+     * GET /budgets/list
+     * Devuelve todos los presupuestos del usuario
+     */
     public function list($f3)
     {
         $decoded = $this->requireAuth($f3);
-
-        $result = $this->budgetModel->find(['user_id = ?', $decoded->data->user_id]);
-        $items = [];
-
-        foreach ($result as $budget) {
-            $row = $budget->cast();
-            $spent = $this->calculateSpent($decoded->data->user_id, $row);
-            $amount = (float)$row['amount'];
-            $remaining = $amount - $spent;
-            $progress = $amount > 0 ? round(($spent / $amount) * 100, 2) : 0;
-
-            $row['amount'] = $amount;
-            $row['spent'] = $spent;
-            $row['remaining'] = round($remaining, 2);
-            $row['progress_percent'] = $progress;
-            $row['is_overspent'] = $spent > $amount;
-
-            $items[] = $row;
+        if (!$decoded) {
+            return;
         }
 
-        $this->successResponse([
-            'items' => $items,
-            'total' => count($items),
-            'message' => count($items) > 0
-                ? 'Budget list generated successfully'
-                : 'No budgets found'
-        ]);
-    }
+        $userId = (int)$decoded->data->user_id;
+        $rows = $this->budgetModel->find(
+            ['user_id = ?', $userId],
+            ['order' => 'created_at DESC, id DESC']
+        );
 
-    public function summary($f3)
-    {
-        $decoded = $this->requireAuth($f3);
-
-        $budgets = $this->budgetModel->find([
-            'user_id = ? AND status = ?',
-            $decoded->data->user_id,
-            'active'
-        ]);
-
-        $summaryItems = [];
+        $items = [];
         $totalBudgeted = 0.0;
         $totalSpent = 0.0;
+        $activeCount = 0;
+        $pausedCount = 0;
+        $archivedCount = 0;
 
-        foreach ($budgets as $budget) {
+        foreach ($rows as $budget) {
             $row = $budget->cast();
-            $amount = (float)$row['amount'];
-            $spent = $this->calculateSpent($decoded->data->user_id, $row);
+            $item = $this->buildBudgetListItem($row, $userId);
+            $items[] = $item;
 
-            $totalBudgeted += $amount;
-            $totalSpent += $spent;
+            $recordStatus = strtolower((string)$row['status']);
 
-            $summaryItems[] = [
-                'id' => (int)$row['id'],
-                'name' => $row['name'],
-                'budgeted' => $amount,
-                'spent' => $spent,
-                'remaining' => round($amount - $spent, 2),
-                'progress_percent' => $amount > 0 ? round(($spent / $amount) * 100, 2) : 0,
-                'is_overspent' => $spent > $amount
-            ];
-        }
-
-        usort($summaryItems, function ($a, $b) {
-            return $b['progress_percent'] <=> $a['progress_percent'];
-        });
-
-        $this->successResponse([
-            'totals' => [
-                'budgeted' => round($totalBudgeted, 2),
-                'spent' => round($totalSpent, 2),
-                'remaining' => round($totalBudgeted - $totalSpent, 2),
-                'usage_percent' => $totalBudgeted > 0
-                    ? round(($totalSpent / $totalBudgeted) * 100, 2)
-                    : 0
-            ],
-            'items' => $summaryItems,
-            'total_active_budgets' => count($summaryItems)
-        ]);
-    }
-
-    protected function validateBudgetPayload(array $payload, bool $isUpdate)
-    {
-        $required = ['name', 'amount', 'period', 'start_date'];
-        foreach ($required as $field) {
-            if (!$isUpdate && !array_key_exists($field, $payload)) {
-                $this->errorResponse('Missing required field: ' . $field, 400);
-                return false;
+            if ($recordStatus === 'active') {
+                $activeCount++;
+                $totalBudgeted += $item['budgeted'];
+                $totalSpent += $item['spent'];
+            } elseif ($recordStatus === 'paused') {
+                $pausedCount++;
+            } elseif ($recordStatus === 'archived') {
+                $archivedCount++;
             }
         }
 
-        if (!isset($payload['name']) || trim((string)$payload['name']) === '') {
-            $this->errorResponse('Budget name is required', 400);
+        $this->successResponse([
+            'detail' => [
+                'total_budgeted' => round($totalBudgeted, 2),
+                'total_spent' => round($totalSpent, 2),
+                'usage_percent' => $totalBudgeted > 0
+                    ? round(($totalSpent / $totalBudgeted) * 100, 2)
+                    : 0, 
+                'total_budgets' => count($items)
+            ],
+            'items' => $items,
+            'message' => count($items) > 0
+                ? 'Listado general de presupuestos generado correctamente'
+                : 'No hay presupuestos registrados'
+        ]);
+    }
+
+    /**
+     * POST /budgets/filter
+     * JSON: {"period":"monthly","startDate":"2026-07-01","endDate":"2026-07-31"}
+     * period: weekly | monthly | annual | custom
+     */
+    public function filter($f3)
+    {
+        $decoded = $this->requireAuth($f3);
+        if (!$decoded) {
+            return;
+        }
+
+        $body = $this->parseJsonOrEncryptedBody($f3);
+        if (empty($body)) {
+            return;
+        }
+
+        $userId = (int)$decoded->data->user_id;
+        $periodInput = strtolower(trim((string)($body['period'] ?? '')));
+        $startDate = $body['startDate'] ?? $body['start_date'] ?? null;
+        $endDate = $body['endDate'] ?? $body['end_date'] ?? null;
+
+        if (!in_array($periodInput, ['weekly', 'monthly', 'annual', 'custom'], true)) {
+            $this->errorResponse(
+                'Invalid period. Allowed values: weekly, monthly, annual, custom',
+                400
+            );
+            return;
+        }
+
+        if (!$this->isValidDate($startDate)) {
+            $this->errorResponse('startDate must use YYYY-MM-DD format', 400);
+            return;
+        }
+
+        if (!$this->isValidDate($endDate)) {
+            $this->errorResponse('endDate must use YYYY-MM-DD format', 400);
+            return;
+        }
+
+        if (strtotime($endDate) < strtotime($startDate)) {
+            $this->errorResponse('endDate cannot be earlier than startDate', 400);
+            return;
+        }
+
+        $databasePeriod = $periodInput === 'annual' ? 'yearly' : $periodInput;
+
+        $where = [
+            'b.user_id = ?',
+            'b.status = ?',
+            'b.start_date <= ?',
+            'b.end_date >= ?'
+        ];
+        $params = [$userId, 'active', $endDate, $startDate];
+
+        if ($periodInput !== 'custom') {
+            $where[] = 'b.period = ?';
+            $params[] = $databasePeriod;
+        }
+
+        $db = \Base::instance()->get('DB');
+        $sql = "SELECT b.* FROM budgets b WHERE "
+             . implode(' AND ', $where)
+             . " ORDER BY b.created_at DESC, b.id DESC";
+
+        $rows = $db->exec($sql, $params);
+
+        $totalBudget = 0.0;
+        $totalSpent = 0.0;
+        $budgetList = [];
+
+        if (is_array($rows)) {
+            foreach ($rows as $row) {
+                $budgetId = (int)$row['id'];
+                $categories = $this->getBudgetCategoryItems($budgetId);
+                $accountIds = $this->getBudgetAccountIds($budgetId);
+                $categoryIds = array_map(
+                    fn($item) => (int)$item['category_id'],
+                    $categories
+                );
+
+                $effectiveStart = max($row['start_date'], $startDate);
+                $effectiveEnd = min($row['end_date'], $endDate);
+
+                $spent = $this->calculateSpent(
+                    $userId,
+                    $effectiveStart,
+                    $effectiveEnd,
+                    $categoryIds,
+                    $accountIds
+                );
+
+                $budgeted = round((float)$row['amount'], 2);
+                $percentage = $budgeted > 0
+                    ? round(($spent / $budgeted) * 100, 2)
+                    : 0;
+
+                if ($spent > $budgeted) {
+                    $status = 'EXCEEDED';
+                } elseif ($percentage >= 80) {
+                    $status = 'WARNING';
+                } else {
+                    $status = 'ON_TRACK';
+                }
+
+                $icon = $categories[0]['icon'] ?? null;
+                $color = $categories[0]['color'] ?? null;
+
+                $totalBudget += $budgeted;
+                $totalSpent += $spent;
+
+                $budgetList[] = [
+                    'id' => $budgetId,
+                    'name' => $row['name'],
+                    'icon' => $icon,
+                    'color' => $color,
+                    'status' => $status,
+                    'percentage' => $percentage,
+                    'spentAmount' => round($spent, 2),
+                    'budgetAmount' => $budgeted
+                ];
+            }
+        }
+
+        $totalBudget = round($totalBudget, 2);
+        $totalSpent = round($totalSpent, 2);
+        $usagePercentage = $totalBudget > 0
+            ? round(($totalSpent / $totalBudget) * 100, 2)
+            : 0;
+
+        $this->sendBudgetFilterResponse([
+            'totalBudget' => $totalBudget,
+            'totalSpent' => $totalSpent,
+            'usagePercentage' => $usagePercentage,
+            'budgetList' => $budgetList
+        ]);
+    }
+
+    protected function sendBudgetFilterResponse(array $data): void
+    {
+        http_response_code(200);
+        header('Content-Type: application/json; charset=utf-8');
+
+        echo json_encode(
+            [
+                'success' => true,
+                'message' => 'Budgets retrieved successfully',
+                'data' => $data,
+                'statusCode' => 200,
+                'timestamp' => gmdate('Y-m-d\TH:i:s\Z')
+            ],
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        );
+    }
+
+    protected function buildBudgetListItem(array $row, int $userId): array
+    {
+        $budgetId = (int)$row['id'];
+        $categories = $this->getBudgetCategoryItems($budgetId);
+        $accountIds = $this->getBudgetAccountIds($budgetId);
+        $accounts = $this->getBudgetAccounts($budgetId);
+        $categoryIds = array_map(fn($item) => (int)$item['category_id'], $categories);
+
+        $spent = $this->calculateSpent(
+            $userId,
+            $row['start_date'],
+            $row['end_date'],
+            $categoryIds,
+            $accountIds
+        );
+
+        $budgeted = (float)$row['amount'];
+        $remaining = round($budgeted - $spent, 2);
+        $percentage = $budgeted > 0 ? round(($spent / $budgeted) * 100, 2) : 0;
+
+        if ($spent > $budgeted) {
+            $budgetStatus = 'EXCEEDED';
+        } elseif ($percentage >= 80) {
+            $budgetStatus = 'WARNING';
+        } else {
+            $budgetStatus = 'ON_TRACK';
+        }
+
+        return [
+            'id' => $budgetId,
+            'name' => $row['name'],
+            'status' => $budgetStatus,
+            'percentage' => $percentage,
+            'spent' => $spent,
+            'budgeted' => $budgeted
+        ];
+    }
+
+    public function detail($f3)
+    {
+        $decoded = $this->requireAuth($f3);
+        if (!$decoded) {
+            return;
+        }
+
+        $body = $this->parseJsonOrEncryptedBody($f3);
+
+        if (empty($body)) {
+            return;
+        }
+
+        $budgetId = (int)(
+            $body['budget_id']
+            ?? $body['id']
+            ?? 0
+        );
+
+        if ($budgetId <= 0) {
+            $this->errorResponse('Budget id is required', 400);
+            return;
+        }
+        $userId = (int)$decoded->data->user_id;
+
+        $this->budgetModel->load([
+            'id = ? AND user_id = ?',
+            $budgetId,
+            $userId
+        ]);
+
+        if (!$this->budgetModel->loaded()) {
+            $this->errorResponse(
+                'Budget not found or not accessible',
+                404
+            );
+            return;
+        }
+
+        $row = $this->budgetModel->cast();
+        $categories = $this->getBudgetCategoryItems($budgetId);
+        $accountIds = $this->getBudgetAccountIds($budgetId);
+        $accounts = $this->getBudgetAccounts($budgetId);
+
+        $categoryDetails = [];
+        $totalSpent = 0.0;
+
+        foreach ($categories as $category) {
+            $allocatedAmount = round((float)$category['amount'], 2);
+
+            $spentAmount = $this->calculateSpent(
+                $userId,
+                $row['start_date'],
+                $row['end_date'],
+                [(int)$category['category_id']],
+                $accountIds
+            );
+
+            $percentage = $allocatedAmount > 0
+                ? round(($spentAmount / $allocatedAmount) * 100, 2)
+                : 0;
+
+            $categoryStatus = $this->resolveBudgetStatus(
+                $spentAmount,
+                $allocatedAmount,
+                $percentage
+            );
+
+            $totalSpent += $spentAmount;
+
+            $categoryDetails[] = [
+                'id' => (int)$category['category_id'],
+                'name' => $category['name'],
+                'icon' => $category['icon'],
+                'color' => $category['color'],
+                'status' => $categoryStatus,
+                'percentage' => $percentage,
+                'spentAmount' => round($spentAmount, 2),
+                'budgetAmount' => $allocatedAmount,
+                'remainingAmount' => round(
+                    $allocatedAmount - $spentAmount,
+                    2
+                )
+            ];
+        }
+
+        $totalBudget = round((float)$row['amount'], 2);
+        $totalSpent = round($totalSpent, 2);
+        $usagePercentage = $totalBudget > 0
+            ? round(($totalSpent / $totalBudget) * 100, 2)
+            : 0;
+
+        $budgetStatus = $this->resolveBudgetStatus(
+            $totalSpent,
+            $totalBudget,
+            $usagePercentage
+        );
+
+        $this->sendBudgetDetailResponse([
+            'id' => $budgetId,
+            'name' => $row['name'],
+            'alert' => $this->buildBudgetAlert(
+                $budgetStatus,
+                $usagePercentage
+            ),
+            'generalDetail' => [
+                'status' => $budgetStatus,
+                'recordStatus' => $row['status'],
+                'period' => $row['period'],
+                'startDate' => $row['start_date'],
+                'endDate' => $row['end_date'],
+                'repeatBudget' => (bool)$row['repeat_budget'],
+                'totalBudget' => $totalBudget,
+                'totalSpent' => $totalSpent,
+                'remainingAmount' => round(
+                    $totalBudget - $totalSpent,
+                    2
+                ),
+                'usagePercentage' => $usagePercentage,
+                'notes' => $row['notes']
+            ],
+            'linkedAccounts' => array_map(
+                function ($account) {
+                    return [
+                        'id' => (int)$account['id'],
+                        'name' => $account['name'],
+                        'amount' => (float)$account['amount'],
+                        'icon' => $account['icon'],
+                        'color' => $account['color']
+                    ];
+                },
+                $accounts
+            ),
+            'linkedCategories' => $categoryDetails,
+            'suggestion' => $this->buildBudgetSuggestion(
+                $budgetStatus,
+                $usagePercentage,
+                $totalBudget - $totalSpent
+            ),
+            'availableActions' => [
+                'canEdit' => true,
+                'canArchive' => $row['status'] !== 'archived',
+                'canDelete' => true
+            ]
+        ]);
+    }
+
+    protected function resolveBudgetStatus(
+        float $spent,
+        float $budgeted,
+        float $percentage
+    ): string {
+        if ($spent > $budgeted) {
+            return 'EXCEEDED';
+        }
+
+        if ($percentage >= 80) {
+            return 'WARNING';
+        }
+
+        return 'ON_TRACK';
+    }
+
+    protected function buildBudgetAlert(
+        string $status,
+        float $percentage
+    ): array {
+        switch ($status) {
+            case 'EXCEEDED':
+                return [
+                    'type' => 'ERROR',
+                    'title' => 'Budget exceeded',
+                    'message' => 'You have exceeded the assigned budget.'
+                ];
+
+            case 'WARNING':
+                return [
+                    'type' => 'WARNING',
+                    'title' => 'Budget near the limit',
+                    'message' => 'You have used ' . $percentage . '% of this budget.'
+                ];
+
+            default:
+                return [
+                    'type' => 'INFO',
+                    'title' => 'Budget on track',
+                    'message' => 'Your spending remains within the planned budget.'
+                ];
+        }
+    }
+
+    protected function buildBudgetSuggestion(
+        string $status,
+        float $percentage,
+        float $remainingAmount
+    ): string {
+        if ($status === 'EXCEEDED') {
+            return 'Review the categories with the highest spending and reduce non-essential expenses.';
+        }
+
+        if ($status === 'WARNING') {
+            return 'You are close to the budget limit. Prioritize essential expenses for the rest of the period.';
+        }
+
+        return 'You are managing this budget well. You still have '
+            . round($remainingAmount, 2)
+            . ' available.';
+    }
+
+    protected function sendBudgetDetailResponse(array $data): void
+    {
+        http_response_code(200);
+        header('Content-Type: application/json; charset=utf-8');
+
+        echo json_encode(
+            [
+                'success' => true,
+                'message' => 'Budget detail retrieved successfully',
+                'data' => $data,
+                'statusCode' => 200,
+                'timestamp' => gmdate('Y-m-d\\TH:i:s\\Z')
+            ],
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        );
+    }
+
+    protected function normalizeBudgetInput(
+        array $body,
+        ?array $current
+    ): array {
+        $categories = $body['categories']
+            ?? $body['category_items']
+            ?? ($current['categories'] ?? []);
+
+        $accountIds = $this->normalizeIdArray(
+            $body['account_ids']
+                ?? $body['account_id']
+                ?? ($current['account_ids'] ?? [])
+        );
+
+        $repeatBudget = $body['repeat_budget']
+            ?? $body['repeat']
+            ?? ($current['repeat_budget'] ?? false);
+
+        return [
+            'name' => trim((string)(
+                $body['name'] ?? ($current['name'] ?? '')
+            )),
+            'period' => strtolower(trim((string)(
+                $body['period'] ?? ($current['period'] ?? '')
+            ))),
+            'start_date' => $body['start_date']
+                ?? ($current['start_date'] ?? null),
+            'repeat_budget' => filter_var(
+                $repeatBudget,
+                FILTER_VALIDATE_BOOLEAN
+            ),
+            'account_ids' => $accountIds,
+            'categories' => $this->normalizeCategoryItems($categories),
+            'status' => strtolower(trim((string)(
+                $body['status'] ?? ($current['status'] ?? 'active')
+            ))),
+            'notes' => array_key_exists('notes', $body)
+                ? $body['notes']
+                : ($current['notes'] ?? null)
+        ];
+    }
+
+    protected function validateBudgetPayload(array $payload): bool
+    {
+        if ($payload['name'] === '') {
+            $this->errorResponse(
+                'El nombre del presupuesto es obligatorio',
+                400
+            );
             return false;
         }
 
-        if (!is_numeric($payload['amount']) || (float)$payload['amount'] <= 0) {
-            $this->errorResponse('Amount must be a positive number', 400);
-            return false;
-        }
-
-        $validPeriods = ['weekly', 'monthly', 'yearly', 'custom'];
-        if (!in_array(strtolower((string)$payload['period']), $validPeriods, true)) {
-            $this->errorResponse('Invalid period. Allowed values: weekly, monthly, yearly, custom', 400);
+        if (!in_array(
+            $payload['period'],
+            ['weekly', 'monthly', 'yearly'],
+            true
+        )) {
+            $this->errorResponse(
+                'Periodo inválido. Valores permitidos: weekly, monthly, yearly',
+                400
+            );
             return false;
         }
 
         if (!$this->isValidDate($payload['start_date'])) {
-            $this->errorResponse('Invalid start_date. Expected format: YYYY-MM-DD', 400);
+            $this->errorResponse(
+                'start_date debe tener formato YYYY-MM-DD',
+                400
+            );
             return false;
         }
 
-        $validStatus = ['active', 'paused', 'archived'];
-        $status = strtolower((string)($payload['status'] ?? 'active'));
-        if (!in_array($status, $validStatus, true)) {
-            $this->errorResponse('Invalid status. Allowed values: active, paused, archived', 400);
+        if (empty($payload['account_ids'])) {
+            $this->errorResponse(
+                'Debe seleccionar al menos una cuenta',
+                400
+            );
             return false;
         }
 
-        if (strtolower((string)$payload['period']) === 'custom') {
-            if (empty($payload['end_date']) || !$this->isValidDate($payload['end_date'])) {
-                $this->errorResponse('custom period requires a valid end_date (YYYY-MM-DD)', 400);
+        if (empty($payload['categories'])) {
+            $this->errorResponse(
+                'Debe seleccionar al menos una categoría',
+                400
+            );
+            return false;
+        }
+
+        foreach ($payload['categories'] as $item) {
+            if (
+                empty($item['category_id'])
+                || !is_numeric($item['amount'])
+                || (float)$item['amount'] <= 0
+            ) {
+                $this->errorResponse(
+                    'Cada categoría debe tener category_id y un amount mayor que cero',
+                    400
+                );
                 return false;
             }
         }
 
-        if (!empty($payload['end_date']) && !$this->isValidDate($payload['end_date'])) {
-            $this->errorResponse('Invalid end_date. Expected format: YYYY-MM-DD', 400);
-            return false;
-        }
-
-        if (!empty($payload['end_date']) && strtotime($payload['end_date']) < strtotime($payload['start_date'])) {
-            $this->errorResponse('end_date cannot be before start_date', 400);
+        if (!in_array(
+            $payload['status'],
+            ['active', 'paused', 'archived'],
+            true
+        )) {
+            $this->errorResponse(
+                'Estado inválido. Valores: active, paused, archived',
+                400
+            );
             return false;
         }
 
         return true;
     }
 
-    protected function resolveEndDate(string $period, string $startDate, ?string $endDate): ?string
+    protected function normalizeCategoryItems($value): array
     {
-        $period = strtolower($period);
-        if ($period === 'custom') {
-            return $endDate;
+        if (!is_array($value)) {
+            return [];
         }
 
+        $grouped = [];
+
+        foreach ($value as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $categoryId = (int)(
+                $item['category_id']
+                ?? $item['id']
+                ?? 0
+            );
+
+            $amount = $item['amount']
+                ?? $item['monto']
+                ?? null;
+
+            if ($categoryId <= 0 || !is_numeric($amount)) {
+                continue;
+            }
+
+            // Si la misma categoría llega repetida, suma sus montos.
+            if (!isset($grouped[$categoryId])) {
+                $grouped[$categoryId] = 0.0;
+            }
+
+            $grouped[$categoryId] += (float)$amount;
+        }
+
+        $items = [];
+
+        foreach ($grouped as $categoryId => $amount) {
+            $items[] = [
+                'category_id' => (int)$categoryId,
+                'amount' => round($amount, 2)
+            ];
+        }
+
+        return $items;
+    }
+
+    protected function filterAndValidateCategoryItems(
+        array $items,
+        int $userId
+    ): ?array {
+        $ids = array_values(array_unique(array_map(
+            fn($item) => (int)$item['category_id'],
+            $items
+        )));
+
+        if (empty($ids)) {
+            $this->errorResponse(
+                'Debe seleccionar categorías válidas',
+                400
+            );
+            return null;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $params = $ids;
+        $params[] = $userId;
+
+        $db = \Base::instance()->get('DB');
+
+        $rows = $db->exec(
+            "SELECT id, nombre, icono, color
+             FROM categorias
+             WHERE id IN ($placeholders)
+               AND (usuario_id = ? OR usuario_id IS NULL)
+               AND LOWER(COALESCE(tipo, '')) IN ('gasto', 'expense', 'egreso')",
+            $params
+        );
+
+        if (!is_array($rows) || count($rows) !== count($ids)) {
+            $this->errorResponse(
+                'Una o más categorías no existen, no son de gasto o no están disponibles para el usuario',
+                400
+            );
+            return null;
+        }
+
+        $metadata = [];
+        foreach ($rows as $row) {
+            $metadata[(int)$row['id']] = $row;
+        }
+
+        $validated = [];
+        foreach ($items as $item) {
+            $id = (int)$item['category_id'];
+
+            if (!isset($metadata[$id])) {
+                continue;
+            }
+
+            $validated[] = [
+                'category_id' => $id,
+                'name' => $metadata[$id]['nombre'],
+                'icon' => $metadata[$id]['icono'],
+                'color' => $metadata[$id]['color'],
+                'amount' => round((float)$item['amount'], 2)
+            ];
+        }
+
+        return $validated;
+    }
+
+    protected function calculateBudgetTotal(array $categories): float
+    {
+        $total = 0.0;
+
+        foreach ($categories as $item) {
+            $total += (float)$item['amount'];
+        }
+
+        return round($total, 2);
+    }
+
+    protected function syncBudgetCategoryItems(
+        int $budgetId,
+        array $categories
+    ): void {
+        $db = \Base::instance()->get('DB');
+
+        $db->exec(
+            'DELETE FROM budget_categories WHERE budget_id = ?',
+            [$budgetId]
+        );
+
+        foreach ($categories as $item) {
+            $db->exec(
+                'INSERT INTO budget_categories
+                    (budget_id, category_id, allocated_amount)
+                 VALUES (?, ?, ?)',
+                [
+                    $budgetId,
+                    (int)$item['category_id'],
+                    (float)$item['amount']
+                ]
+            );
+        }
+    }
+
+    protected function syncBudgetAccounts(
+        int $budgetId,
+        array $accountIds
+    ): void {
+        $db = \Base::instance()->get('DB');
+
+        $db->exec(
+            'DELETE FROM budget_accounts WHERE budget_id = ?',
+            [$budgetId]
+        );
+
+        foreach ($accountIds as $accountId) {
+            $db->exec(
+                'INSERT INTO budget_accounts (budget_id, account_id)
+                 VALUES (?, ?)',
+                [$budgetId, (int)$accountId]
+            );
+        }
+    }
+
+    protected function getBudgetCategoryItems(int $budgetId): array
+    {
+        $db = \Base::instance()->get('DB');
+
+        $rows = $db->exec(
+            "SELECT
+                bc.category_id,
+                bc.allocated_amount AS amount,
+                c.nombre AS name,
+                c.icono AS icon,
+                c.color
+             FROM budget_categories bc
+             INNER JOIN categorias c ON c.id = bc.category_id
+             WHERE bc.budget_id = ?
+             ORDER BY c.nombre ASC",
+            [$budgetId]
+        );
+
+        if (!is_array($rows)) {
+            return [];
+        }
+
+        return array_map(function ($row) {
+            return [
+                'category_id' => (int)$row['category_id'],
+                'amount' => (float)$row['amount'],
+                'name' => $row['name'],
+                'icon' => $row['icon'],
+                'color' => $row['color']
+            ];
+        }, $rows);
+    }
+
+    protected function getBudgetAccountIds(int $budgetId): array
+    {
+        $db = \Base::instance()->get('DB');
+
+        $rows = $db->exec(
+            'SELECT account_id
+             FROM budget_accounts
+             WHERE budget_id = ?',
+            [$budgetId]
+        );
+
+        if (!is_array($rows)) {
+            return [];
+        }
+
+        return array_map(
+            fn($row) => (int)$row['account_id'],
+            $rows
+        );
+    }
+
+    protected function getBudgetAccounts(int $budgetId): array
+    {
+        $db = \Base::instance()->get('DB');
+
+        $rows = $db->exec(
+            "SELECT a.id, a.nombre AS name, a.saldo AS amount,
+                    a.icon, a.color
+             FROM budget_accounts ba
+             INNER JOIN cuentas a ON a.id = ba.account_id
+             WHERE ba.budget_id = ?
+             ORDER BY a.nombre ASC",
+            [$budgetId]
+        );
+
+        return is_array($rows) ? $rows : [];
+    }
+
+    protected function filterValidAccountIds(
+        array $accountIds,
+        int $userId
+    ): array {
+        $accountIds = array_values(array_unique(array_map(
+            'intval',
+            $accountIds
+        )));
+
+        if (empty($accountIds)) {
+            return [];
+        }
+
+        $placeholders = implode(
+            ',',
+            array_fill(0, count($accountIds), '?')
+        );
+
+        $params = $accountIds;
+        $params[] = $userId;
+
+        $db = \Base::instance()->get('DB');
+
+        $rows = $db->exec(
+            "SELECT id
+             FROM cuentas
+             WHERE id IN ($placeholders)
+               AND usuario_id = ?",
+            $params
+        );
+
+        if (!is_array($rows)) {
+            return [];
+        }
+
+        return array_values(array_unique(array_map(
+            fn($row) => (int)$row['id'],
+            $rows
+        )));
+    }
+
+    protected function resolveEndDate(
+        string $period,
+        string $startDate
+    ): ?string {
         try {
             $date = new \DateTime($startDate);
+
             switch ($period) {
                 case 'weekly':
-                    $date->modify('+6 day');
+                    $date->modify('+6 days');
                     break;
+
                 case 'monthly':
                     $date->modify('+1 month -1 day');
                     break;
+
                 case 'yearly':
                     $date->modify('+1 year -1 day');
                     break;
+
                 default:
                     return null;
             }
 
             return $date->format('Y-m-d');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return null;
         }
+    }
+
+    protected function calculateSpent(
+        int $userId,
+        string $startDate,
+        string $endDate,
+        array $categoryIds,
+        array $accountIds
+    ): float {
+        if (
+            empty($categoryIds)
+            || empty($accountIds)
+            || strtotime($endDate) < strtotime($startDate)
+        ) {
+            return 0.0;
+        }
+
+        $db = \Base::instance()->get('DB');
+        $dateColumn = $this->getTransactionDateColumn();
+
+        $catPlaceholders = implode(
+            ',',
+            array_fill(0, count($categoryIds), '?')
+        );
+        $accPlaceholders = implode(
+            ',',
+            array_fill(0, count($accountIds), '?')
+        );
+
+        $sql = "
+            SELECT COALESCE(SUM(t.monto), 0) AS spent
+            FROM transacciones t
+            WHERE t.usuario_id = ?
+              AND LOWER(COALESCE(t.tipo, ''))
+                    IN ('gasto', 'expense', 'egreso')
+              AND DATE(t.$dateColumn) BETWEEN ? AND ?
+              AND t.categoria_id IN ($catPlaceholders)
+              AND t.cuenta_id IN ($accPlaceholders)
+        ";
+
+        $params = [$userId, $startDate, $endDate];
+
+        foreach ($categoryIds as $categoryId) {
+            $params[] = (int)$categoryId;
+        }
+
+        foreach ($accountIds as $accountId) {
+            $params[] = (int)$accountId;
+        }
+
+        $result = $db->exec($sql, $params);
+
+        if (!is_array($result) || !isset($result[0]['spent'])) {
+            return 0.0;
+        }
+
+        return round((float)$result[0]['spent'], 2);
+    }
+
+    protected function setBudgetSeriesId(
+        int $budgetId,
+        int $seriesId
+    ): void {
+        $db = \Base::instance()->get('DB');
+
+        $db->exec(
+            'UPDATE budgets
+             SET budget_series_id = ?
+             WHERE id = ?',
+            [$seriesId, $budgetId]
+        );
+    }
+
+    protected function normalizeIdArray($value): array
+    {
+        if ($value === null || $value === '') {
+            return [];
+        }
+
+        if (!is_array($value)) {
+            $value = strpos((string)$value, ',') !== false
+                ? explode(',', (string)$value)
+                : [$value];
+        }
+
+        $ids = [];
+
+        foreach ($value as $item) {
+            if (is_numeric($item) && (int)$item > 0) {
+                $ids[] = (int)$item;
+            }
+        }
+
+        return array_values(array_unique($ids));
     }
 
     protected function isValidDate($date): bool
@@ -336,40 +1300,10 @@ class BudgetsController extends BaseController
             return false;
         }
 
-        $d = \DateTime::createFromFormat('Y-m-d', $date);
-        return $d && $d->format('Y-m-d') === $date;
-    }
+        $parsed = \DateTime::createFromFormat('Y-m-d', $date);
 
-    protected function calculateSpent(int $userId, array $budgetRow): float
-    {
-        $db = \Base::instance()->get('DB');
-        $dateColumn = $this->getTransactionDateColumn();
-
-        $sql = "
-            SELECT COALESCE(SUM(t.monto), 0) AS spent
-            FROM transacciones t
-            WHERE t.usuario_id = ?
-              AND LOWER(COALESCE(t.tipo, '')) IN ('gasto', 'expense', 'egreso')
-              AND DATE(t.$dateColumn) BETWEEN ? AND ?
-        ";
-
-        $params = [
-            $userId,
-            $budgetRow['start_date'],
-            $budgetRow['end_date']
-        ];
-
-        if (!empty($budgetRow['category_id'])) {
-            $sql .= ' AND t.categoria_id = ?';
-            $params[] = $budgetRow['category_id'];
-        }
-
-        $result = $db->exec($sql, $params);
-        if (!is_array($result) || !isset($result[0]['spent'])) {
-            return 0.0;
-        }
-
-        return round((float)$result[0]['spent'], 2);
+        return $parsed
+            && $parsed->format('Y-m-d') === $date;
     }
 
     protected function getTransactionDateColumn(): string
@@ -380,15 +1314,21 @@ class BudgetsController extends BaseController
 
         $db = \Base::instance()->get('DB');
 
-        $hasFechaRegistro = $db->exec("SHOW COLUMNS FROM transacciones LIKE 'fecha_registro'");
-        if (!empty($hasFechaRegistro)) {
-            $this->transactionDateColumn = 'fecha_registro';
+        $fecha = $db->exec(
+            "SHOW COLUMNS FROM transacciones LIKE 'fecha'"
+        );
+
+        if (!empty($fecha)) {
+            $this->transactionDateColumn = 'fecha';
             return $this->transactionDateColumn;
         }
 
-        $hasFecha = $db->exec("SHOW COLUMNS FROM transacciones LIKE 'fecha'");
-        if (!empty($hasFecha)) {
-            $this->transactionDateColumn = 'fecha';
+        $fechaRegistro = $db->exec(
+            "SHOW COLUMNS FROM transacciones LIKE 'fecha_registro'"
+        );
+
+        if (!empty($fechaRegistro)) {
+            $this->transactionDateColumn = 'fecha_registro';
             return $this->transactionDateColumn;
         }
 
