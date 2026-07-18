@@ -1,0 +1,249 @@
+{
+  "info": {
+    "_postman_id": "4d2d0f7b-3c7c-4e2b-b869-e62adfe4e8b5",
+    "name": "presupuesto_API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "36127622"
+  },
+  "item": [
+    {
+      "name": "register",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{json_web_token_0jc8}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"name\": \"Presupuesto Julio 2026\",\r\n    \"period\": \"monthly\",\r\n    \"start_date\": \"2026-07-01\",\r\n    \"repeat_budget\": true,\r\n    \"account_ids\": [\r\n        24\r\n    ],\r\n    \"categories\": [\r\n        {\r\n            \"category_id\": 21,\r\n            \"amount\": 300\r\n        },\r\n        {\r\n            \"category_id\": 24,\r\n            \"amount\": 100\r\n        },\r\n        {\r\n            \"category_id\": 25,\r\n            \"amount\": 200\r\n        }\r\n    ],\r\n    \"status\": \"active\",\r\n    \"notes\": \"Presupuesto mensual\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.gfinvia.com//budgets/register",
+          "protocol": "https",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "",
+            "budgets",
+            "register"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "listAll",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{json_web_token_0jc8}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": []
+        },
+        "url": {
+          "raw": "https://api.gfinvia.com//budgets/list",
+          "protocol": "https",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "",
+            "budgets",
+            "list"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "delete resupuesto",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{json_web_token_0jc8}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"id\": \"1\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.gfinvia.com/budgets/delete",
+          "protocol": "https",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "",
+            "budgets",
+            "delete"
+          ],
+          "query": [
+            {
+              "key": "id",
+              "value": "26",
+              "type": "text",
+              "disabled": true
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "filter-list",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "{{bearer_token_1d2k}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"period\": \"monthly\",\r\n  \"startDate\": \"2026-07-01\",\r\n  \"endDate\": \"2026-07-31\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.gfinvia.com//budgets/filter",
+          "protocol": "https",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "",
+            "budgets",
+            "filter"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "datail",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{json_web_token_0jc8}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"id\": \"1\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.gfinvia.com//budgets/detail",
+          "protocol": "https",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "",
+            "budgets",
+            "detail"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "update",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "{{bearer_token_1d2k}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"id\": 1,\r\n    \"name\": \"Presupuesto Julio Actualizado\",\r\n    \"period\": \"monthly\",\r\n    \"start_date\": \"2026-07-01\",\r\n    \"repeat_budget\": true,\r\n    \"account_ids\": [\r\n        24\r\n    ],\r\n    \"categories\": [\r\n        {\r\n            \"category_id\": 21,\r\n            \"amount\": 300\r\n        },\r\n        {\r\n            \"category_id\": 24,\r\n            \"amount\": 100\r\n        },\r\n        {\r\n            \"category_id\": 25,\r\n            \"amount\": 200\r\n        }\r\n    ],\r\n    \"status\": \"active\",\r\n    \"notes\": \"Budget updated\"\r\n}"
+        },
+        "url": {
+          "raw": "https://api.gfinvia.com//budgets/update",
+          "protocol": "https",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "",
+            "budgets",
+            "update"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "json_web_token_0jc8",
+      "secret": true
+    },
+    {
+      "key": "bearer_token_1d2k",
+      "secret": true
+    }
+  ]
+}
