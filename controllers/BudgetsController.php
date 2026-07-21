@@ -419,6 +419,8 @@ $db = \Base::instance()->get('DB');
 
                 $budgetList[] = [
                     'id' => $budgetId,
+                    'start_date' => $row['start_date'],
+                    'end_date' => $row['end_date'],
                     'name' => $row['name'],
                     'icon' => $icon,
                     'color' => $color,
@@ -437,8 +439,6 @@ $db = \Base::instance()->get('DB');
             : 0;
 
         $this->sendBudgetFilterResponse([
-            'start_date' => $startDate,
-            'end_date' => $endDate,
             'totalBudget' => $totalBudget,
             'totalSpent' => $totalSpent,
             'usagePercentage' => $usagePercentage,
