@@ -67,6 +67,8 @@ $db = \Base::instance()->get('DB');
             $this->budgetModel->set('user_id', $userId);
             $this->budgetModel->set('budget_series_id', null);
             $this->budgetModel->set('name', $payload['name']);
+            $this->budgetModel->set('icon', $payload['icon']);
+            $this->budgetModel->set('color', $payload['color']);
             $this->budgetModel->set('amount', $totalAmount);
             $this->budgetModel->set('start_date', $payload['start_date']);
             $this->budgetModel->set('end_date', $payload['end_date']);
@@ -186,6 +188,8 @@ $db = \Base::instance()->get('DB');
         try {
             $db->begin();
             $this->budgetModel->set('name', $payload['name']);
+            $this->budgetModel->set('icon', $payload['icon']);
+            $this->budgetModel->set('color', $payload['color']);
             $this->budgetModel->set('amount', $totalAmount);
             $this->budgetModel->set('start_date', $payload['start_date']);
             $this->budgetModel->set('end_date', $payload['end_date']);
@@ -411,9 +415,6 @@ $db = \Base::instance()->get('DB');
                     $status = 'ON_TRACK';
                 }
 
-                $icon = $categories[0]['icon'] ?? null;
-                $color = $categories[0]['color'] ?? null;
-
                 $totalBudget += $budgeted;
                 $totalSpent += $spent;
 
@@ -422,8 +423,8 @@ $db = \Base::instance()->get('DB');
                     'start_date' => $row['start_date'],
                     'end_date' => $row['end_date'],
                     'name' => $row['name'],
-                    'icon' => $icon,
-                    'color' => $color,
+                    'icon' => $row['icon'] ?? null,
+                    'color' => $row['color'] ?? null,
                     'status' => $status,
                     'percentage' => $percentage,
                     'spentAmount' => round($spent, 2),
@@ -494,6 +495,8 @@ $db = \Base::instance()->get('DB');
         return [
             'id' => $budgetId,
             'name' => $row['name'],
+            'icon' => $row['icon'] ?? null,
+            'color' => $row['color'] ?? null,
             'status' => $budgetStatus,
             'percentage' => $percentage,
             'spent' => $spent,
@@ -602,6 +605,8 @@ $db = \Base::instance()->get('DB');
         $this->sendBudgetDetailResponse([
             'id' => $budgetId,
             'name' => $row['name'],
+            'icon' => $row['icon'] ?? null,
+            'color' => $row['color'] ?? null,
             'alert' => $this->buildBudgetAlert(
                 $budgetStatus,
                 $usagePercentage
@@ -742,6 +747,12 @@ $db = \Base::instance()->get('DB');
         return [
             'name' => trim((string)(
                 $body['name'] ?? ($current['name'] ?? '')
+            )),
+            'icon' => trim((string)(
+                $body['icon'] ?? ($current['icon'] ?? '')
+            )),
+            'color' => trim((string)(
+                $body['color'] ?? ($current['color'] ?? '')
             )),
             'start_date' => $body['start_date']
                 ?? $body['startDate']
