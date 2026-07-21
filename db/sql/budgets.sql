@@ -211,3 +211,5 @@ LEFT JOIN budget_categories bc
     ON bc.budget_id = b.id
 GROUP BY b.id, b.name, b.amount
 ORDER BY b.id DESC;
+
+ALTER TABLE budgets DROP COLUMN period;
