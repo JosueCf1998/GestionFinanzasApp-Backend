@@ -58,18 +58,7 @@ class BudgetsController extends BaseController
         }
 
         $totalAmount = $this->calculateBudgetTotal($validCategories);
-
-        $endDate = $this->resolveEndDate(
-            $payload['period'],
-            $payload['start_date']
-        );
-
-        if ($endDate === null) {
-            $this->errorResponse('No se pudo calcular la fecha final', 400);
-            return;
-        }
-
-        $db = \Base::instance()->get('DB');
+$db = \Base::instance()->get('DB');
 
         try {
             $db->begin();
@@ -79,9 +68,8 @@ class BudgetsController extends BaseController
             $this->budgetModel->set('budget_series_id', null);
             $this->budgetModel->set('name', $payload['name']);
             $this->budgetModel->set('amount', $totalAmount);
-            $this->budgetModel->set('period', $payload['period']);
             $this->budgetModel->set('start_date', $payload['start_date']);
-            $this->budgetModel->set('end_date', $endDate);
+            $this->budgetModel->set('end_date', $payload['end_date']);
             $this->budgetModel->set(
                 'repeat_budget',
                 $payload['repeat_budget'] ? 1 : 0
@@ -127,7 +115,7 @@ class BudgetsController extends BaseController
     /**
      * PUT/PATCH /budgets/update
      *
-     * Permite editar nombre, periodo, fecha, repetición, cuentas y
+     * Permite editar nombre, fechas, repetición, cuentas y
      * categorías con sus montos. El total se vuelve a calcular.
      */
     public function update($f3)
@@ -197,25 +185,14 @@ class BudgetsController extends BaseController
         }
 
         $totalAmount = $this->calculateBudgetTotal($validCategories);
-        $endDate = $this->resolveEndDate(
-            $payload['period'],
-            $payload['start_date']
-        );
-
-        if ($endDate === null) {
-            $this->errorResponse('No se pudo calcular la fecha final', 400);
-            return;
-        }
-
-        $db = \Base::instance()->get('DB');
+$db = \Base::instance()->get('DB');
 
         try {
             $db->begin();
             $this->budgetModel->set('name', $payload['name']);
             $this->budgetModel->set('amount', $totalAmount);
-            $this->budgetModel->set('period', $payload['period']);
             $this->budgetModel->set('start_date', $payload['start_date']);
-            $this->budgetModel->set('end_date', $endDate);
+            $this->budgetModel->set('end_date', $payload['end_date']);
             $this->budgetModel->set(
                 'repeat_budget',
                 $payload['repeat_budget'] ? 1 : 0
@@ -356,8 +333,7 @@ class BudgetsController extends BaseController
 
     /**
      * POST /budgets/filter
-     * JSON: {"period":"monthly","startDate":"2026-07-01","endDate":"2026-07-31"}
-     * period: weekly | monthly | annual | custom
+     * JSON: {"startDate":"2026-07-01","endDate":"2026-07-31"}
      */
     public function filter($f3)
     {
@@ -372,17 +348,8 @@ class BudgetsController extends BaseController
         }
 
         $userId = (int)$decoded->data->user_id;
-        $periodInput = strtolower(trim((string)($body['period'] ?? '')));
         $startDate = $body['startDate'] ?? $body['start_date'] ?? null;
         $endDate = $body['endDate'] ?? $body['end_date'] ?? null;
-
-        if (!in_array($periodInput, ['weekly', 'monthly', 'annual', 'custom'], true)) {
-            $this->errorResponse(
-                'Invalid period. Allowed values: weekly, monthly, annual, custom',
-                400
-            );
-            return;
-        }
 
         if (!$this->isValidDate($startDate)) {
             $this->errorResponse('startDate must use YYYY-MM-DD format', 400);
@@ -399,8 +366,6 @@ class BudgetsController extends BaseController
             return;
         }
 
-        $databasePeriod = $periodInput === 'annual' ? 'yearly' : $periodInput;
-
         $where = [
             'b.user_id = ?',
             'b.status = ?',
@@ -408,11 +373,6 @@ class BudgetsController extends BaseController
             'b.end_date >= ?'
         ];
         $params = [$userId, 'active', $endDate, $startDate];
-
-        if ($periodInput !== 'custom') {
-            $where[] = 'b.period = ?';
-            $params[] = $databasePeriod;
-        }
 
         $db = \Base::instance()->get('DB');
         $sql = "SELECT b.* FROM budgets b WHERE "
@@ -655,7 +615,6 @@ class BudgetsController extends BaseController
             'generalDetail' => [
                 'status' => $budgetStatus,
                 'recordStatus' => $row['status'],
-                'period' => $row['period'],
                 'startDate' => $row['start_date'],
                 'endDate' => $row['end_date'],
                 'repeatBudget' => (bool)$row['repeat_budget'],
@@ -795,11 +754,12 @@ class BudgetsController extends BaseController
             'name' => trim((string)(
                 $body['name'] ?? ($current['name'] ?? '')
             )),
-            'period' => strtolower(trim((string)(
-                $body['period'] ?? ($current['period'] ?? '')
-            ))),
             'start_date' => $body['start_date']
+                ?? $body['startDate']
                 ?? ($current['start_date'] ?? null),
+            'end_date' => $body['end_date']
+                ?? $body['endDate']
+                ?? ($current['end_date'] ?? null),
             'repeat_budget' => filter_var(
                 $repeatBudget,
                 FILTER_VALIDATE_BOOLEAN
@@ -825,21 +785,25 @@ class BudgetsController extends BaseController
             return false;
         }
 
-        if (!in_array(
-            $payload['period'],
-            ['weekly', 'monthly', 'yearly'],
-            true
-        )) {
+        if (!$this->isValidDate($payload['start_date'])) {
             $this->errorResponse(
-                'Periodo inválido. Valores permitidos: weekly, monthly, yearly',
+                'start_date debe tener formato YYYY-MM-DD',
                 400
             );
             return false;
         }
 
-        if (!$this->isValidDate($payload['start_date'])) {
+        if (!$this->isValidDate($payload['end_date'])) {
             $this->errorResponse(
-                'start_date debe tener formato YYYY-MM-DD',
+                'end_date debe tener formato YYYY-MM-DD',
+                400
+            );
+            return false;
+        }
+
+        if (strtotime($payload['end_date']) < strtotime($payload['start_date'])) {
+            $this->errorResponse(
+                'end_date no puede ser menor que start_date',
                 400
             );
             return false;
@@ -1168,36 +1132,6 @@ class BudgetsController extends BaseController
             fn($row) => (int)$row['id'],
             $rows
         )));
-    }
-
-    protected function resolveEndDate(
-        string $period,
-        string $startDate
-    ): ?string {
-        try {
-            $date = new \DateTime($startDate);
-
-            switch ($period) {
-                case 'weekly':
-                    $date->modify('+6 days');
-                    break;
-
-                case 'monthly':
-                    $date->modify('+1 month -1 day');
-                    break;
-
-                case 'yearly':
-                    $date->modify('+1 year -1 day');
-                    break;
-
-                default:
-                    return null;
-            }
-
-            return $date->format('Y-m-d');
-        } catch (\Throwable $e) {
-            return null;
-        }
     }
 
     protected function calculateSpent(
