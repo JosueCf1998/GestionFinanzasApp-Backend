@@ -70,10 +70,6 @@ $db = \Base::instance()->get('DB');
             $this->budgetModel->set('amount', $totalAmount);
             $this->budgetModel->set('start_date', $payload['start_date']);
             $this->budgetModel->set('end_date', $payload['end_date']);
-            $this->budgetModel->set(
-                'repeat_budget',
-                $payload['repeat_budget'] ? 1 : 0
-            );
             $this->budgetModel->set('status', $payload['status']);
             $this->budgetModel->set('notes', $payload['notes']);
 
@@ -193,10 +189,6 @@ $db = \Base::instance()->get('DB');
             $this->budgetModel->set('amount', $totalAmount);
             $this->budgetModel->set('start_date', $payload['start_date']);
             $this->budgetModel->set('end_date', $payload['end_date']);
-            $this->budgetModel->set(
-                'repeat_budget',
-                $payload['repeat_budget'] ? 1 : 0
-            );
             $this->budgetModel->set('status', $payload['status']);
             $this->budgetModel->set('notes', $payload['notes']);
 
@@ -445,6 +437,8 @@ $db = \Base::instance()->get('DB');
             : 0;
 
         $this->sendBudgetFilterResponse([
+            'start_date' => $startDate,
+            'end_date' => $endDate,
             'totalBudget' => $totalBudget,
             'totalSpent' => $totalSpent,
             'usagePercentage' => $usagePercentage,
@@ -617,7 +611,6 @@ $db = \Base::instance()->get('DB');
                 'recordStatus' => $row['status'],
                 'startDate' => $row['start_date'],
                 'endDate' => $row['end_date'],
-                'repeatBudget' => (bool)$row['repeat_budget'],
                 'totalBudget' => $totalBudget,
                 'totalSpent' => $totalSpent,
                 'remainingAmount' => round(
@@ -746,10 +739,6 @@ $db = \Base::instance()->get('DB');
                 ?? ($current['account_ids'] ?? [])
         );
 
-        $repeatBudget = $body['repeat_budget']
-            ?? $body['repeat']
-            ?? ($current['repeat_budget'] ?? false);
-
         return [
             'name' => trim((string)(
                 $body['name'] ?? ($current['name'] ?? '')
@@ -760,10 +749,6 @@ $db = \Base::instance()->get('DB');
             'end_date' => $body['end_date']
                 ?? $body['endDate']
                 ?? ($current['end_date'] ?? null),
-            'repeat_budget' => filter_var(
-                $repeatBudget,
-                FILTER_VALIDATE_BOOLEAN
-            ),
             'account_ids' => $accountIds,
             'categories' => $this->normalizeCategoryItems($categories),
             'status' => strtolower(trim((string)(
