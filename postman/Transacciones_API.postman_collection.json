@@ -1,0 +1,195 @@
+{
+  "info": {
+    "_postman_id": "71ac9cc7-0b7f-4757-b792-ae54e3354fb9",
+    "name": "Transacciones_API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "36127622"
+  },
+  "item": [
+    {
+      "name": "register",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{json_web_token_0jc8}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"categoria_id\": 21,\r\n  \"cuenta_id\": 24,\r\n  \"fecha\": \"2026-07-05\",\r\n  \"monto\": 120,\r\n  \"tipo\": \"gasto\",\r\n  \"descripcion\": \"Compra de libros\"\r\n}\r\n\r\n//{\r\n//  \"categoria_id\": 24,\r\n//  \"cuenta_id\": 24,\r\n//  \"fecha\": \"2026-07-10\",\r\n//  \"monto\": 90,\r\n//  \"tipo\": \"gasto\",\r\n//  \"descripcion\": \"Pasajes y taxi\"\r\n//}\r\n//\r\n//{\r\n//  \"categoria_id\": 25,\r\n//  \"cuenta_id\": 24,\r\n//  \"fecha\": \"2026-07-15\",\r\n//  \"monto\": 80,\r\n//  \"tipo\": \"gasto\",\r\n//  \"descripcion\": \"Almuerzo\"\r\n//}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.gfinvia.com/transactions/register",
+          "protocol": "https",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "transactions",
+            "register"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "listAll",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "https://api.gfinvia.com/transactions/list",
+          "protocol": "https",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "transactions",
+            "list"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "fliter",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"account_ids\": [\r\n    35\r\n  ],\r\n  \"category_ids\": [\r\n    20,\r\n    22\r\n  ]\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.gfinvia.com/transactions/filter",
+          "protocol": "https",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "transactions",
+            "filter"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "update",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjY0LCJlbWFpbCI6ImdveWl0bzE0MTBAZ21haWwuY29tIn0sImlhdCI6MTc1OTgwOTQ0NywiZXhwIjoxODU5ODA5NDQ3fQ.GYCMeVxEEZItpShIaiprECz38TK7EyerVE07WXZQhHA",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"transac_id\": 11,\r\n  \"categoria_id\": 21,\r\n  \"cuenta_id\": 20,\r\n  \"fecha\": \"2025-10-14\",\r\n  \"monto\": 150.75,\r\n  \"tipo\": \"Ingreso\",\r\n  \"descripcion\": \"Pago recibido por servicios\"\r\n}\r\n\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "api.gfinvia.com/update-transactions",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "update-transactions"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "delete Transacciones",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjY0LCJlbWFpbCI6ImdveWl0bzE0MTBAZ21haWwuY29tIn0sImlhdCI6MTc1OTgwOTQ0NywiZXhwIjoxODU5ODA5NDQ3fQ.GYCMeVxEEZItpShIaiprECz38TK7EyerVE07WXZQhHA",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"transac_id\": 10\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "api.gfinvia.com/delete-transactions",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "delete-transactions"
+          ],
+          "query": [
+            {
+              "key": "id",
+              "value": "26",
+              "type": "text",
+              "disabled": true
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "json_web_token_0jc8",
+      "secret": true
+    },
+    {
+      "key": "bearer_token_1d2k",
+      "secret": true
+    }
+  ]
+}
