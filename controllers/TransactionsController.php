@@ -166,12 +166,18 @@ class TransactionsController extends BaseController
             )
         ));
 
+        if ($type === 'expense') {
+            $type = 'gasto';
+        } elseif ($type === 'income') {
+            $type = 'ingreso';
+        }
+
         if (
             $type !== ''
             && !in_array($type, ['gasto', 'ingreso'], true)
         ) {
             $this->errorResponse(
-                'Tipo inválido. Valores permitidos: gasto, ingreso',
+                'Tipo inválido. Valores permitidos: expense, income',
                 400
             );
             return;
@@ -257,6 +263,7 @@ class TransactionsController extends BaseController
                 a.nombre AS cuenta,
                 a.icon AS cuenta_icono,
                 a.color AS cuenta_color,
+                a.saldo AS cuenta_saldo,
                 t.monto,
                 t.tipo,
                 t.fecha_registro,
@@ -286,16 +293,6 @@ class TransactionsController extends BaseController
 
                 $accountId = (int)$row['cuenta_id'];
 
-                if (!isset($accountMap[$accountId])) {
-                    $accountMap[$accountId] = [
-                        'color' => $row['cuenta_color'],
-                        'icon' => $row['cuenta_icono'],
-                        'id' => $accountId,
-                        'name' => $row['cuenta']
-                        
-                        
-                    ];
-                }
 
                 $categoryId = (int)$row['categoria_id'];
 
@@ -316,7 +313,14 @@ class TransactionsController extends BaseController
                         'id' => $accountId,
                         'name' => $row['cuenta'],
                         'icon' => $row['cuenta_icono'],
-                        'color' => $row['cuenta_color']
+                        'color' => $row['cuenta_color'],
+                        'amount' => number_format(
+                            (float)$row['cuenta_saldo'],
+                            2,
+                            '.',
+                            ''
+                        )
+                        
                     ],
                     'category' => [
                         'id' => $categoryId,
@@ -369,10 +373,7 @@ class TransactionsController extends BaseController
         $transactionCount = count($expensesList) + count($incomeList);
 
         $this->successResponse([
-            'accountList' => $accountList,
-            'totalAccount' => count($accountList),
             'totalAmount' => number_format($totalAmount, 2, '.', ''),
-            'grafitcategory' => $grafitcategory,
             'transactionList' => [
                 'expensesList' => $expensesList,
                 'incomeList' => $incomeList
