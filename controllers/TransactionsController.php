@@ -270,42 +270,114 @@ class TransactionsController extends BaseController
         ";
 
         $rows = $db->exec($sql, $params);
-        $items = [];
+
+        $accountMap = [];
+        $categoryMap = [];
+        $expensesList = [];
+        $incomeList = [];
         $totalAmount = 0.0;
 
         if (is_array($rows)) {
             foreach ($rows as $row) {
                 $amount = round((float)$row['monto'], 2);
+                $transactionType = strtolower(trim((string)$row['tipo']));
+
                 $totalAmount += $amount;
 
-                $items[] = [
+                $accountId = (int)$row['cuenta_id'];
+
+                if (!isset($accountMap[$accountId])) {
+                    $accountMap[$accountId] = [
+                        'color' => $row['cuenta_color'],
+                        'icon' => $row['cuenta_icono'],
+                        'id' => $accountId,
+                        'name' => $row['cuenta']
+                        
+                        
+                    ];
+                }
+
+                $categoryId = (int)$row['categoria_id'];
+
+                if (!isset($categoryMap[$categoryId])) {
+                    $categoryMap[$categoryId] = [
+                        'category' => [
+                            'id' => $categoryId
+                        ],
+                        'amount' => 0.0
+                    ];
+                }
+
+                $categoryMap[$categoryId]['amount'] += $amount;
+
+                $transaction = [
                     'id' => (int)$row['id'],
                     'account' => [
-                        'id' => (int)$row['cuenta_id'],
+                        'id' => $accountId,
                         'name' => $row['cuenta'],
                         'icon' => $row['cuenta_icono'],
                         'color' => $row['cuenta_color']
                     ],
                     'category' => [
-                        'id' => (int)$row['categoria_id'],
+                        'id' => $categoryId,
                         'name' => $row['categoria'],
                         'icon' => $row['categoria_icono'],
                         'color' => $row['categoria_color']
                     ],
-                    'amount' => $amount,
-                    'type' => $row['tipo'],
+                    'amount' => number_format($amount, 2, '.', ''),
+                    'type' => $transactionType === 'gasto'
+                        ? 'expense'
+                        : 'income',
                     'date' => $row['fecha_registro'],
                     'createdAt' => $row['fecha_registro'],
                     'description' => $row['descripcion']
                 ];
+
+                if ($transactionType === 'ingreso') {
+                    $incomeList[] = $transaction;
+                } elseif ($transactionType === 'gasto') {
+                    $expensesList[] = $transaction;
+                }
             }
         }
 
+        $accountList = array_values($accountMap);
+
+        $grafitcategory = [];
+
+        foreach ($categoryMap as $categoryData) {
+            $categoryAmount = round((float)$categoryData['amount'], 2);
+
+            $percentage = $totalAmount > 0
+                ? round(($categoryAmount / $totalAmount) * 100, 2)
+                : 0.00;
+
+            $grafitcategory[] = [
+                'category' => $categoryData['category'],
+                'amount' => number_format($categoryAmount, 2, '.', ''),
+                'percentage' => number_format($percentage, 2, '.', '')
+            ];
+        }
+
+        usort(
+            $grafitcategory,
+            function ($a, $b) {
+                return (float)$b['percentage'] <=> (float)$a['percentage'];
+            }
+        );
+
+        $transactionCount = count($expensesList) + count($incomeList);
+
         $this->successResponse([
-            'items' => $items,
-            'total' => count($items),
-            'totalAmount' => round($totalAmount, 2),
-            'message' => count($items) > 0
+            'accountList' => $accountList,
+            'totalAccount' => count($accountList),
+            'totalAmount' => number_format($totalAmount, 2, '.', ''),
+            'grafitcategory' => $grafitcategory,
+            'transactionList' => [
+                'expensesList' => $expensesList,
+                'incomeList' => $incomeList
+            ],
+            'message' => $transactionCount > 0
                 ? 'Transacciones filtradas correctamente'
                 : 'No se encontraron transacciones'
         ]);
