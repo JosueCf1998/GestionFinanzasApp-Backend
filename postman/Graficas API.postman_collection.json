@@ -1,0 +1,270 @@
+{
+  "info": {
+    "_postman_id": "48c2b6c0-abba-43eb-89bf-13e958348b7a",
+    "name": "Graficas API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "36127622"
+  },
+  "item": [
+    {
+      "name": "Resumen",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjcwLCJlbWFpbCI6Impvc3VlQGdtYWlsLmNvbSJ9LCJpYXQiOjE3ODQ2MTIwMTcsImV4cCI6MTg4NDYxMjAxN30.Ip4EJRMzoppEE-Cvuv8aL7mIdYuz_c1uAlMvUy7GqHo",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"categoria_id\": 21,\r\n  \"cuenta_id\": 24,\r\n  \"fecha\": \"2026-07-05\",\r\n  \"monto\": 120,\r\n  \"tipo\": \"gasto\",\r\n  \"descripcion\": \"Compra de libros\"\r\n}\r\n\r\n//{\r\n//  \"categoria_id\": 24,\r\n//  \"cuenta_id\": 24,\r\n//  \"fecha\": \"2026-07-10\",\r\n//  \"monto\": 90,\r\n//  \"tipo\": \"gasto\",\r\n//  \"descripcion\": \"Pasajes y taxi\"\r\n//}\r\n//\r\n//{\r\n//  \"categoria_id\": 25,\r\n//  \"cuenta_id\": 24,\r\n//  \"fecha\": \"2026-07-15\",\r\n//  \"monto\": 80,\r\n//  \"tipo\": \"gasto\",\r\n//  \"descripcion\": \"Almuerzo\"\r\n//}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.gfinvia.com/dashboard/summary",
+          "protocol": "https",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "dashboard",
+            "summary"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Gastos por categoría",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjcwLCJlbWFpbCI6Impvc3VlQGdtYWlsLmNvbSJ9LCJpYXQiOjE3ODQ2MTIwMTcsImV4cCI6MTg4NDYxMjAxN30.Ip4EJRMzoppEE-Cvuv8aL7mIdYuz_c1uAlMvUy7GqHo",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "https://api.gfinvia.com/dashboard/expenses-by-category",
+          "protocol": "https",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "dashboard",
+            "expenses-by-category"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Comparación de ingresos y gastos",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjcwLCJlbWFpbCI6Impvc3VlQGdtYWlsLmNvbSJ9LCJpYXQiOjE3ODQ2MTIwMTcsImV4cCI6MTg4NDYxMjAxN30.Ip4EJRMzoppEE-Cvuv8aL7mIdYuz_c1uAlMvUy7GqHo",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"account_ids\": [\r\n    35\r\n  ],\r\n  \"category_ids\": [\r\n    20,\r\n    22\r\n  ],\r\n  \"type\": \"gasto\"\r\n\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.gfinvia.com/dashboard/income-vs-expenses",
+          "protocol": "https",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "dashboard",
+            "income-vs-expenses"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Evolución del saldo",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjcwLCJlbWFpbCI6Impvc3VlQGdtYWlsLmNvbSJ9LCJpYXQiOjE3ODQ2MTIwMTcsImV4cCI6MTg4NDYxMjAxN30.Ip4EJRMzoppEE-Cvuv8aL7mIdYuz_c1uAlMvUy7GqHo",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"transac_id\": 11,\r\n  \"categoria_id\": 21,\r\n  \"cuenta_id\": 20,\r\n  \"fecha\": \"2025-10-14\",\r\n  \"monto\": 150.75,\r\n  \"tipo\": \"Ingreso\",\r\n  \"descripcion\": \"Pago recibido por servicios\"\r\n}\r\n\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.gfinvia.com/dashboard/balance-evolution",
+          "protocol": "https",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "dashboard",
+            "balance-evolution"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Progreso de presupuestos",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjY0LCJlbWFpbCI6ImdveWl0bzE0MTBAZ21haWwuY29tIn0sImlhdCI6MTc1OTgwOTQ0NywiZXhwIjoxODU5ODA5NDQ3fQ.GYCMeVxEEZItpShIaiprECz38TK7EyerVE07WXZQhHA",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"transac_id\": 10\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.gfinvia.com/dashboard/budget-progress",
+          "protocol": "https",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "dashboard",
+            "budget-progress"
+          ],
+          "query": [
+            {
+              "key": "id",
+              "value": "26",
+              "type": "text",
+              "disabled": true
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Categorías con mayores gastos",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjcwLCJlbWFpbCI6Impvc3VlQGdtYWlsLmNvbSJ9LCJpYXQiOjE3ODQ2MTIwMTcsImV4cCI6MTg4NDYxMjAxN30.Ip4EJRMzoppEE-Cvuv8aL7mIdYuz_c1uAlMvUy7GqHo",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"transac_id\": 10\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.gfinvia.com/dashboard/top-expense-categories",
+          "protocol": "https",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "dashboard",
+            "top-expense-categories"
+          ],
+          "query": [
+            {
+              "key": "",
+              "value": "",
+              "type": "text",
+              "disabled": true
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "json_web_token_0jc8",
+      "secret": true
+    },
+    {
+      "key": "bearer_token_1d2k",
+      "secret": true
+    },
+    {
+      "key": "bearer_token_1d0p",
+      "secret": true
+    },
+    {
+      "key": "json_web_token_0yoz",
+      "secret": true
+    },
+    {
+      "key": "bearer_token_0lih",
+      "secret": true
+    }
+  ]
+}
