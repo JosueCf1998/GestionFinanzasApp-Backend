@@ -13,35 +13,63 @@ class DashboardModel
         $this->db = \Base::instance()->get('DB');
     }
 
-    public function getSummary(int $userId, int $year, int $month, string $startDate, string $endDate): array
+    public function validateUserAccounts(int $userId, array $accountIds): array
     {
-        $period = [
-            'year' => $year,
-            'month' => $month,
-            'start_date' => $startDate,
-            'end_date' => $endDate
-        ];
+        if (empty($accountIds)) {
+            return [];
+        }
 
-        $monthlyTotals = $this->getIncomeExpenseTotalsByRange($userId, $startDate, $endDate);
-        $budgetProgress = $this->calculateBudgetProgressData($userId, $startDate, $endDate);
-        $currentBalance = $this->getCurrentBalance($userId);
+        $accountIds = array_values(array_unique(array_map('intval', $accountIds)));
+        $placeholders = implode(',', array_fill(0, count($accountIds), '?'));
+        $params = $accountIds;
+        $params[] = $userId;
 
-        $totalIncome = $monthlyTotals['income'];
-        $totalExpenses = $monthlyTotals['expenses'];
-        $monthlyBalance = round($totalIncome - $totalExpenses, 2);
+        $rows = $this->db->exec(
+            "SELECT id FROM cuentas WHERE id IN ($placeholders) AND usuario_id = ?",
+            $params
+        );
+
+        if (!is_array($rows)) {
+            return [];
+        }
+
+        $validMap = [];
+        foreach ($rows as $row) {
+            $validMap[(int)$row['id']] = true;
+        }
+
+        $validIds = [];
+        foreach ($accountIds as $accountId) {
+            if (isset($validMap[$accountId])) {
+                $validIds[] = $accountId;
+            }
+        }
+
+        return $validIds;
+    }
+
+    public function getSummary(int $userId, string $fechaInicio, string $fechaFin, array $accountIds): array
+    {
+        $filters = $this->buildFiltersPayload($fechaInicio, $fechaFin, $accountIds);
+        $periodTotals = $this->getIncomeExpenseTotalsByRange($userId, $fechaInicio, $fechaFin, $accountIds);
+        $budgetProgress = $this->calculateBudgetProgressData($userId, $fechaInicio, $fechaFin, $accountIds);
+        $currentBalance = $this->getCurrentBalance($userId, $accountIds);
+
+        $totalIncome = $periodTotals['income'];
+        $totalExpenses = $periodTotals['expenses'];
+        $periodBalance = round($totalIncome - $totalExpenses, 2);
         $totalBudget = $budgetProgress['totals']['budgeted'];
         $budgetSpent = $budgetProgress['totals']['spent'];
         $budgetRemaining = round($totalBudget - $budgetSpent, 2);
         $savingsRate = $totalIncome > 0
-            ? round(($monthlyBalance / $totalIncome) * 100, 2)
+            ? round(($periodBalance / $totalIncome) * 100, 2)
             : 0.0;
 
         return [
-            'period' => $period,
             'summary' => [
                 'total_income' => $totalIncome,
                 'total_expenses' => $totalExpenses,
-                'monthly_balance' => $monthlyBalance,
+                'period_balance' => $periodBalance,
                 'current_balance' => $currentBalance,
                 'total_budget' => $totalBudget,
                 'budget_spent' => $budgetSpent,
@@ -51,85 +79,52 @@ class DashboardModel
         ];
     }
 
-    public function getExpensesByCategory(int $userId, int $year, int $month, string $startDate, string $endDate): array
+    public function getExpensesByCategory(int $userId, string $fechaInicio, string $fechaFin, array $accountIds): array
     {
-        $stats = $this->getExpenseCategoryStats($userId, $startDate, $endDate, null);
+        $stats = $this->getExpenseCategoryStats($userId, $fechaInicio, $fechaFin, $accountIds, null);
 
         return [
-            'period' => [
-                'year' => $year,
-                'month' => $month
-            ],
             'total_expenses' => $stats['total_expenses'],
             'items' => $stats['items']
         ];
     }
 
-    public function getIncomeVsExpenses(int $userId, int $year): array
+    public function getIncomeVsExpenses(int $userId, string $fechaInicio, string $fechaFin, array $accountIds): array
     {
-        $monthlyMap = $this->getIncomeVsExpenseMapByYear($userId, $year);
-        $months = $this->getSpanishMonthNames();
-
-        $items = [];
-        $totalIncome = 0.0;
-        $totalExpenses = 0.0;
-
-        for ($month = 1; $month <= 12; $month++) {
-            $income = isset($monthlyMap[$month]) ? $monthlyMap[$month]['income'] : 0.0;
-            $expenses = isset($monthlyMap[$month]) ? $monthlyMap[$month]['expenses'] : 0.0;
-            $balance = round($income - $expenses, 2);
-
-            $items[] = [
-                'month_number' => $month,
-                'month' => $months[$month],
-                'income' => $income,
-                'expenses' => $expenses,
-                'balance' => $balance
-            ];
-
-            $totalIncome += $income;
-            $totalExpenses += $expenses;
-        }
-
-        $totalIncome = round($totalIncome, 2);
-        $totalExpenses = round($totalExpenses, 2);
+        $periods = $this->generateMonthlyPeriods($fechaInicio, $fechaFin);
+        $monthlyMap = $this->getIncomeVsExpenseMapByRange($userId, $fechaInicio, $fechaFin, $accountIds);
 
         return [
-            'year' => $year,
-            'items' => $items,
-            'totals' => [
-                'income' => $totalIncome,
-                'expenses' => $totalExpenses,
-                'balance' => round($totalIncome - $totalExpenses, 2)
-            ]
+            'items' => $this->buildIncomeExpenseItems(
+                $periods,
+                $monthlyMap,
+                $this->spansMultipleYears($fechaInicio, $fechaFin)
+            )
         ];
     }
 
-    public function getBalanceEvolution(int $userId, int $year): array
+    public function getBalanceEvolution(int $userId, string $fechaInicio, string $fechaFin, array $accountIds): array
     {
-        $yearStart = sprintf('%04d-01-01', $year);
-        $monthlyMap = $this->getIncomeVsExpenseMapByYear($userId, $year);
-        $months = $this->getSpanishMonthNames();
-
-        // Fuente de verdad elegida: saldos actuales de cuentas + movimientos históricos.
-        // Se reconstruye el saldo inicial del año restando los movimientos posteriores
-        // al inicio del año al saldo actual, evitando doble conteo.
-        $currentBalance = $this->getCurrentBalance($userId);
-        $netAfterYearStart = $this->getNetMovementFromDate($userId, $yearStart);
-        $initialBalance = round($currentBalance - $netAfterYearStart, 2);
+        $periods = $this->generateMonthlyPeriods($fechaInicio, $fechaFin);
+        $monthlyMap = $this->getIncomeVsExpenseMapByRange($userId, $fechaInicio, $fechaFin, $accountIds);
+        $currentBalance = $this->getCurrentBalance($userId, $accountIds);
+        $netMovementFromStart = $this->getNetMovementFromDate($userId, $fechaInicio, $accountIds);
+        $initialBalance = round($currentBalance - $netMovementFromStart, 2);
 
         $items = [];
         $accumulated = $initialBalance;
+        $multipleYears = $this->spansMultipleYears($fechaInicio, $fechaFin);
 
-        for ($month = 1; $month <= 12; $month++) {
-            $income = isset($monthlyMap[$month]) ? $monthlyMap[$month]['income'] : 0.0;
-            $expenses = isset($monthlyMap[$month]) ? $monthlyMap[$month]['expenses'] : 0.0;
+        foreach ($periods as $period) {
+            $periodKey = $period['period'];
+            $income = isset($monthlyMap[$periodKey]) ? $monthlyMap[$periodKey]['income'] : 0.0;
+            $expenses = isset($monthlyMap[$periodKey]) ? $monthlyMap[$periodKey]['expenses'] : 0.0;
             $monthlyBalance = round($income - $expenses, 2);
             $accumulated = round($accumulated + $monthlyBalance, 2);
 
             $items[] = [
-                'month_number' => $month,
-                'month' => $months[$month],
+                'period' => $periodKey,
+                'month' => $this->formatMonthLabel($period['date'], $multipleYears),
                 'income' => $income,
                 'expenses' => $expenses,
                 'monthly_balance' => $monthlyBalance,
@@ -138,68 +133,57 @@ class DashboardModel
         }
 
         return [
-            'year' => $year,
             'initial_balance' => $initialBalance,
             'items' => $items
         ];
     }
 
-    public function getBudgetProgress(int $userId, int $year, int $month, string $startDate, string $endDate): array
+    public function getBudgetProgress(int $userId, string $fechaInicio, string $fechaFin, array $accountIds): array
     {
-        $result = $this->calculateBudgetProgressData($userId, $startDate, $endDate);
+        $result = $this->calculateBudgetProgressData($userId, $fechaInicio, $fechaFin, $accountIds);
 
         return [
-            'period' => [
-                'year' => $year,
-                'month' => $month
-            ],
             'totals' => $result['totals'],
             'items' => $result['items']
         ];
     }
 
-    public function getTopExpenseCategories(int $userId, int $year, int $month, string $startDate, string $endDate, int $limit): array
+    public function getTopExpenseCategories(int $userId, string $fechaInicio, string $fechaFin, array $accountIds, int $limit): array
     {
-        $stats = $this->getExpenseCategoryStats($userId, $startDate, $endDate, $limit);
-        $items = [];
-        $position = 1;
-
-        foreach ($stats['items'] as $item) {
-            $item['position'] = $position;
-            $items[] = $item;
-            $position++;
-        }
+        $stats = $this->getExpenseCategoryStats($userId, $fechaInicio, $fechaFin, $accountIds, $limit);
 
         return [
-            'period' => [
-                'year' => $year,
-                'month' => $month
-            ],
             'limit' => $limit,
-            'items' => $items
+            'total_expenses' => $stats['total_expenses'],
+            'items' => $stats['items']
         ];
     }
 
-    private function getIncomeExpenseTotalsByRange(int $userId, string $startDate, string $endDate): array
+    private function getIncomeExpenseTotalsByRange(int $userId, string $startDate, string $endDate, array $accountIds): array
     {
         $dateColumn = $this->getTransactionDateColumn();
+        $where = [
+            't.usuario_id = ?',
+            'DATE(t.' . $dateColumn . ') BETWEEN ? AND ?'
+        ];
+        $params = [$userId, $startDate, $endDate];
+        $this->appendAccountFilter($where, $params, 't.cuenta_id', $accountIds);
 
         $sql = "
             SELECT
                 COALESCE(SUM(CASE
-                    WHEN LOWER(COALESCE(t.tipo, '')) IN ('ingreso', 'income')
+                    WHEN LOWER(TRIM(COALESCE(t.tipo, ''))) IN ('ingreso', 'income')
                     THEN t.monto ELSE 0
                 END), 0) AS total_income,
                 COALESCE(SUM(CASE
-                    WHEN LOWER(COALESCE(t.tipo, '')) IN ('gasto', 'expense', 'egreso')
+                    WHEN LOWER(TRIM(COALESCE(t.tipo, ''))) IN ('gasto', 'expense', 'egreso')
                     THEN t.monto ELSE 0
                 END), 0) AS total_expenses
             FROM transacciones t
-            WHERE t.usuario_id = ?
-              AND DATE(t.$dateColumn) BETWEEN ? AND ?
+            WHERE " . implode(' AND ', $where) . "
         ";
 
-        $rows = $this->db->exec($sql, [$userId, $startDate, $endDate]);
+        $rows = $this->db->exec($sql, $params);
         $row = is_array($rows) && isset($rows[0]) ? $rows[0] : [];
 
         return [
@@ -208,11 +192,15 @@ class DashboardModel
         ];
     }
 
-    private function getCurrentBalance(int $userId): float
+    private function getCurrentBalance(int $userId, array $accountIds): float
     {
+        $where = ['usuario_id = ?'];
+        $params = [$userId];
+        $this->appendAccountFilter($where, $params, 'id', $accountIds);
+
         $rows = $this->db->exec(
-            "SELECT COALESCE(SUM(saldo), 0) AS total_balance FROM cuentas WHERE usuario_id = ?",
-            [$userId]
+            'SELECT COALESCE(SUM(saldo), 0) AS total_balance FROM cuentas WHERE ' . implode(' AND ', $where),
+            $params
         );
 
         if (!is_array($rows) || !isset($rows[0]['total_balance'])) {
@@ -222,29 +210,35 @@ class DashboardModel
         return round((float)$rows[0]['total_balance'], 2);
     }
 
-    private function getIncomeVsExpenseMapByYear(int $userId, int $year): array
+    private function getIncomeVsExpenseMapByRange(int $userId, string $startDate, string $endDate, array $accountIds): array
     {
         $dateColumn = $this->getTransactionDateColumn();
+        $where = [
+            't.usuario_id = ?',
+            'DATE(t.' . $dateColumn . ') BETWEEN ? AND ?'
+        ];
+        $params = [$userId, $startDate, $endDate];
+        $this->appendAccountFilter($where, $params, 't.cuenta_id', $accountIds);
 
         $sql = "
             SELECT
-                MONTH(DATE(t.$dateColumn)) AS month_number,
+                DATE_FORMAT(DATE(t.$dateColumn), '%Y-%m') AS period_key,
+                DATE_FORMAT(DATE(t.$dateColumn), '%Y-%m-01') AS period_start,
                 COALESCE(SUM(CASE
-                    WHEN LOWER(COALESCE(t.tipo, '')) IN ('ingreso', 'income')
+                    WHEN LOWER(TRIM(COALESCE(t.tipo, ''))) IN ('ingreso', 'income')
                     THEN t.monto ELSE 0
                 END), 0) AS income,
                 COALESCE(SUM(CASE
-                    WHEN LOWER(COALESCE(t.tipo, '')) IN ('gasto', 'expense', 'egreso')
+                    WHEN LOWER(TRIM(COALESCE(t.tipo, ''))) IN ('gasto', 'expense', 'egreso')
                     THEN t.monto ELSE 0
                 END), 0) AS expenses
             FROM transacciones t
-            WHERE t.usuario_id = ?
-              AND YEAR(DATE(t.$dateColumn)) = ?
-            GROUP BY MONTH(DATE(t.$dateColumn))
-            ORDER BY MONTH(DATE(t.$dateColumn)) ASC
+            WHERE " . implode(' AND ', $where) . "
+            GROUP BY DATE_FORMAT(DATE(t.$dateColumn), '%Y-%m'), DATE_FORMAT(DATE(t.$dateColumn), '%Y-%m-01')
+            ORDER BY period_start ASC
         ";
 
-        $rows = $this->db->exec($sql, [$userId, $year]);
+        $rows = $this->db->exec($sql, $params);
         $result = [];
 
         if (!is_array($rows)) {
@@ -252,8 +246,8 @@ class DashboardModel
         }
 
         foreach ($rows as $row) {
-            $monthNumber = (int)$row['month_number'];
-            $result[$monthNumber] = [
+            $periodKey = (string)$row['period_key'];
+            $result[$periodKey] = [
                 'income' => round((float)$row['income'], 2),
                 'expenses' => round((float)$row['expenses'], 2)
             ];
@@ -262,24 +256,29 @@ class DashboardModel
         return $result;
     }
 
-    private function getNetMovementFromDate(int $userId, string $startDate): float
+    private function getNetMovementFromDate(int $userId, string $startDate, array $accountIds): float
     {
         $dateColumn = $this->getTransactionDateColumn();
+        $where = [
+            't.usuario_id = ?',
+            'DATE(t.' . $dateColumn . ') >= ?'
+        ];
+        $params = [$userId, $startDate];
+        $this->appendAccountFilter($where, $params, 't.cuenta_id', $accountIds);
 
         $sql = "
             SELECT COALESCE(SUM(
                 CASE
-                    WHEN LOWER(COALESCE(t.tipo, '')) IN ('ingreso', 'income') THEN t.monto
-                    WHEN LOWER(COALESCE(t.tipo, '')) IN ('gasto', 'expense', 'egreso') THEN -t.monto
+                    WHEN LOWER(TRIM(COALESCE(t.tipo, ''))) IN ('ingreso', 'income') THEN t.monto
+                    WHEN LOWER(TRIM(COALESCE(t.tipo, ''))) IN ('gasto', 'expense', 'egreso') THEN -t.monto
                     ELSE 0
                 END
             ), 0) AS net_amount
             FROM transacciones t
-            WHERE t.usuario_id = ?
-              AND DATE(t.$dateColumn) >= ?
+            WHERE " . implode(' AND ', $where) . "
         ";
 
-        $rows = $this->db->exec($sql, [$userId, $startDate]);
+        $rows = $this->db->exec($sql, $params);
         if (!is_array($rows) || !isset($rows[0]['net_amount'])) {
             return 0.0;
         }
@@ -287,9 +286,9 @@ class DashboardModel
         return round((float)$rows[0]['net_amount'], 2);
     }
 
-    private function calculateBudgetProgressData(int $userId, string $startDate, string $endDate): array
+    private function calculateBudgetProgressData(int $userId, string $startDate, string $endDate, array $accountIds): array
     {
-        $budgetRows = $this->getActiveBudgetRowsBySeries($userId, $startDate, $endDate);
+        $budgetRows = $this->getActiveBudgetRowsBySeries($userId, $startDate, $endDate, $accountIds);
 
         if (empty($budgetRows)) {
             return [
@@ -307,7 +306,7 @@ class DashboardModel
             return (int)$row['id'];
         }, $budgetRows);
 
-        $spentByBudget = $this->getSpentByBudgetIds($budgetIds, $startDate, $endDate);
+        $spentByBudget = $this->getSpentByBudgetIds($budgetIds, $startDate, $endDate, $accountIds);
         $categoryMeta = $this->getBudgetCategoryMetaByBudgetIds($budgetIds);
 
         $items = [];
@@ -323,9 +322,6 @@ class DashboardModel
                 ? round(($spent / $budgeted) * 100, 2)
                 : 0.0;
 
-            $status = $this->resolveBudgetStatus($progress);
-            $isOverspent = $progress > 100.0;
-
             $meta = isset($categoryMeta[$budgetId]) ? $categoryMeta[$budgetId] : [
                 'category_id' => null,
                 'category_name' => 'Sin categoría'
@@ -340,8 +336,8 @@ class DashboardModel
                 'spent' => $spent,
                 'remaining' => $remaining,
                 'progress_percentage' => $progress,
-                'status' => $status,
-                'is_overspent' => $isOverspent
+                'status' => $this->resolveBudgetStatus($progress),
+                'is_overspent' => $progress > 100.0
             ];
 
             $totalBudgeted += $budgeted;
@@ -350,23 +346,21 @@ class DashboardModel
 
         $totalBudgeted = round($totalBudgeted, 2);
         $totalSpent = round($totalSpent, 2);
-        $totalRemaining = round($totalBudgeted - $totalSpent, 2);
-        $usage = $totalBudgeted > 0
-            ? round(($totalSpent / $totalBudgeted) * 100, 2)
-            : 0.0;
 
         return [
             'totals' => [
                 'budgeted' => $totalBudgeted,
                 'spent' => $totalSpent,
-                'remaining' => $totalRemaining,
-                'usage_percentage' => $usage
+                'remaining' => round($totalBudgeted - $totalSpent, 2),
+                'usage_percentage' => $totalBudgeted > 0
+                    ? round(($totalSpent / $totalBudgeted) * 100, 2)
+                    : 0.0
             ],
             'items' => $items
         ];
     }
 
-    private function getActiveBudgetRowsBySeries(int $userId, string $startDate, string $endDate): array
+    private function getActiveBudgetRowsBySeries(int $userId, string $startDate, string $endDate, array $accountIds): array
     {
         $sql = "
             SELECT b.id, b.name, b.amount, b.start_date, b.end_date
@@ -383,22 +377,46 @@ class DashboardModel
                 GROUP BY COALESCE(budget_series_id, id)
             ) latest ON latest.budget_id = b.id
             WHERE b.user_id = ?
-            ORDER BY b.start_date ASC, b.id ASC
         ";
 
-        $rows = $this->db->exec($sql, [$userId, $endDate, $startDate, $userId]);
+        $params = [$userId, $endDate, $startDate, $userId];
 
+        if (!empty($accountIds)) {
+            $placeholders = implode(',', array_fill(0, count($accountIds), '?'));
+            $sql .= "
+              AND EXISTS (
+                    SELECT 1
+                    FROM budget_accounts ba
+                    WHERE ba.budget_id = b.id
+                      AND ba.account_id IN ($placeholders)
+                )
+            ";
+
+            foreach ($accountIds as $accountId) {
+                $params[] = (int)$accountId;
+            }
+        }
+
+        $sql .= ' ORDER BY b.start_date ASC, b.id ASC';
+
+        $rows = $this->db->exec($sql, $params);
         return is_array($rows) ? $rows : [];
     }
 
-    private function getSpentByBudgetIds(array $budgetIds, string $startDate, string $endDate): array
+    private function getSpentByBudgetIds(array $budgetIds, string $startDate, string $endDate, array $accountIds): array
     {
         if (empty($budgetIds)) {
             return [];
         }
 
         $dateColumn = $this->getTransactionDateColumn();
-        $placeholders = implode(',', array_fill(0, count($budgetIds), '?'));
+        $budgetPlaceholders = implode(',', array_fill(0, count($budgetIds), '?'));
+        $accountFilter = '';
+
+        if (!empty($accountIds)) {
+            $accountPlaceholders = implode(',', array_fill(0, count($accountIds), '?'));
+            $accountFilter = " AND ba.account_id IN ($accountPlaceholders)";
+        }
 
         $sql = "
             SELECT
@@ -411,15 +429,18 @@ class DashboardModel
                 ON t.usuario_id = b.user_id
                AND t.categoria_id = bc.category_id
                AND t.cuenta_id = ba.account_id
-               AND LOWER(COALESCE(t.tipo, '')) IN ('gasto', 'expense', 'egreso')
+               AND LOWER(TRIM(COALESCE(t.tipo, ''))) IN ('gasto', 'expense', 'egreso')
                AND DATE(t.$dateColumn) BETWEEN GREATEST(b.start_date, ?) AND LEAST(b.end_date, ?)
-            WHERE b.id IN ($placeholders)
+            WHERE b.id IN ($budgetPlaceholders)$accountFilter
             GROUP BY b.id
         ";
 
         $params = [$startDate, $endDate];
         foreach ($budgetIds as $budgetId) {
             $params[] = (int)$budgetId;
+        }
+        foreach ($accountIds as $accountId) {
+            $params[] = (int)$accountId;
         }
 
         $rows = $this->db->exec($sql, $params);
@@ -463,9 +484,7 @@ class DashboardModel
         $result = [];
         foreach ($rows as $row) {
             $budgetId = (int)$row['budget_id'];
-            $totalCategories = (int)$row['total_categories'];
-
-            if ($totalCategories === 1) {
+            if ((int)$row['total_categories'] === 1) {
                 $result[$budgetId] = [
                     'category_id' => (int)$row['single_category_id'],
                     'category_name' => (string)$row['single_category_name']
@@ -482,19 +501,24 @@ class DashboardModel
         return $result;
     }
 
-    private function getExpenseCategoryStats(int $userId, string $startDate, string $endDate, ?int $limit): array
+    private function getExpenseCategoryStats(int $userId, string $startDate, string $endDate, array $accountIds, ?int $limit): array
     {
         $dateColumn = $this->getTransactionDateColumn();
+        $where = [
+            't.usuario_id = ?',
+            "LOWER(TRIM(COALESCE(t.tipo, ''))) IN ('gasto', 'expense', 'egreso')",
+            'DATE(t.' . $dateColumn . ') BETWEEN ? AND ?'
+        ];
+        $params = [$userId, $startDate, $endDate];
+        $this->appendAccountFilter($where, $params, 't.cuenta_id', $accountIds);
 
         $totalSql = "
             SELECT COALESCE(SUM(t.monto), 0) AS total_expenses
             FROM transacciones t
-            WHERE t.usuario_id = ?
-              AND LOWER(COALESCE(t.tipo, '')) IN ('gasto', 'expense', 'egreso')
-              AND DATE(t.$dateColumn) BETWEEN ? AND ?
+            WHERE " . implode(' AND ', $where) . "
         ";
 
-        $totalRows = $this->db->exec($totalSql, [$userId, $startDate, $endDate]);
+        $totalRows = $this->db->exec($totalSql, $params);
         $totalExpenses = 0.0;
         if (is_array($totalRows) && isset($totalRows[0]['total_expenses'])) {
             $totalExpenses = round((float)$totalRows[0]['total_expenses'], 2);
@@ -508,9 +532,7 @@ class DashboardModel
                 COUNT(*) AS transactions_count
             FROM transacciones t
             LEFT JOIN categorias c ON c.id = t.categoria_id
-            WHERE t.usuario_id = ?
-              AND LOWER(COALESCE(t.tipo, '')) IN ('gasto', 'expense', 'egreso')
-              AND DATE(t.$dateColumn) BETWEEN ? AND ?
+            WHERE " . implode(' AND ', $where) . "
             GROUP BY t.categoria_id, COALESCE(c.nombre, 'Sin categoría')
             ORDER BY total DESC
         ";
@@ -519,7 +541,7 @@ class DashboardModel
             $sql .= ' LIMIT ' . (int)$limit;
         }
 
-        $rows = $this->db->exec($sql, [$userId, $startDate, $endDate]);
+        $rows = $this->db->exec($sql, $params);
         if (!is_array($rows)) {
             return [
                 'total_expenses' => 0.0,
@@ -529,17 +551,15 @@ class DashboardModel
 
         $items = [];
         foreach ($rows as $row) {
-            $categoryId = $row['category_id'] !== null ? (int)$row['category_id'] : null;
             $total = round((float)$row['total'], 2);
-            $percentage = $totalExpenses > 0
-                ? round(($total / $totalExpenses) * 100, 2)
-                : 0.0;
 
             $items[] = [
-                'category_id' => $categoryId,
+                'category_id' => $row['category_id'] !== null ? (int)$row['category_id'] : null,
                 'category_name' => (string)$row['category_name'],
                 'total' => $total,
-                'percentage' => $percentage,
+                'percentage' => $totalExpenses > 0
+                    ? round(($total / $totalExpenses) * 100, 2)
+                    : 0.0,
                 'transactions_count' => (int)$row['transactions_count']
             ];
         }
@@ -548,6 +568,79 @@ class DashboardModel
             'total_expenses' => $totalExpenses,
             'items' => $items
         ];
+    }
+
+    private function buildFiltersPayload(string $fechaInicio, string $fechaFin, array $accountIds): array
+    {
+        return [
+            'fecha_inicio' => $fechaInicio,
+            'fecha_fin' => $fechaFin,
+            'cuentas' => array_values($accountIds)
+        ];
+    }
+
+    private function appendAccountFilter(array &$where, array &$params, string $column, array $accountIds): void
+    {
+        if (empty($accountIds)) {
+            return;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($accountIds), '?'));
+        $where[] = $column . " IN ($placeholders)";
+
+        foreach ($accountIds as $accountId) {
+            $params[] = (int)$accountId;
+        }
+    }
+
+    private function generateMonthlyPeriods(string $fechaInicio, string $fechaFin): array
+    {
+        $periods = [];
+        $current = new \DateTimeImmutable(substr($fechaInicio, 0, 7) . '-01');
+        $end = new \DateTimeImmutable(substr($fechaFin, 0, 7) . '-01');
+
+        while ($current <= $end) {
+            $periods[] = [
+                'period' => $current->format('Y-m'),
+                'date' => $current
+            ];
+
+            $current = $current->modify('+1 month');
+        }
+
+        return $periods;
+    }
+
+    private function buildIncomeExpenseItems(array $periods, array $monthlyMap, bool $multipleYears): array
+    {
+        $items = [];
+
+        foreach ($periods as $period) {
+            $periodKey = $period['period'];
+            $income = isset($monthlyMap[$periodKey]) ? $monthlyMap[$periodKey]['income'] : 0.0;
+            $expenses = isset($monthlyMap[$periodKey]) ? $monthlyMap[$periodKey]['expenses'] : 0.0;
+
+            $items[] = [
+                'period' => $periodKey,
+                'month' => $this->formatMonthLabel($period['date'], $multipleYears),
+                'income' => $income,
+                'expenses' => $expenses,
+                'balance' => round($income - $expenses, 2)
+            ];
+        }
+
+        return $items;
+    }
+
+    private function spansMultipleYears(string $fechaInicio, string $fechaFin): bool
+    {
+        return substr($fechaInicio, 0, 4) !== substr($fechaFin, 0, 4);
+    }
+
+    private function formatMonthLabel(\DateTimeImmutable $date, bool $includeYear): string
+    {
+        $monthName = $this->getSpanishMonthNames()[(int)$date->format('n')];
+        return $includeYear ? $monthName . ' ' . $date->format('Y') : $monthName;
     }
 
     private function resolveBudgetStatus(float $progress): string

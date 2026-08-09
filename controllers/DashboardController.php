@@ -19,73 +19,71 @@ class DashboardController extends BaseController
     public function index($f3)
     {
         try {
-            $decoded = $this->requireAuth($f3);
-            if (!$decoded || !isset($decoded->data->user_id)) {
+            $userId = $this->resolveAuthenticatedUserId($f3);
+            if ($userId === null) {
                 return;
             }
 
-            $filters = $this->parseFilters($f3, true, true);
+            $filters = $this->parseDashboardFilters($f3, $userId, true);
             if ($filters === null) {
                 return;
             }
 
-            $userId = (int)$decoded->data->user_id;
-
             $summary = $this->dashboardModel->getSummary(
                 $userId,
-                $filters['year'],
-                $filters['month'],
-                $filters['start_date'],
-                $filters['end_date']
+                $filters['fecha_inicio'],
+                $filters['fecha_fin'],
+                $filters['cuentas']
             );
 
             $expensesByCategory = $this->dashboardModel->getExpensesByCategory(
                 $userId,
-                $filters['year'],
-                $filters['month'],
-                $filters['start_date'],
-                $filters['end_date']
+                $filters['fecha_inicio'],
+                $filters['fecha_fin'],
+                $filters['cuentas']
             );
 
             $incomeVsExpenses = $this->dashboardModel->getIncomeVsExpenses(
                 $userId,
-                $filters['year']
+                $filters['fecha_inicio'],
+                $filters['fecha_fin'],
+                $filters['cuentas']
             );
 
             $balanceEvolution = $this->dashboardModel->getBalanceEvolution(
                 $userId,
-                $filters['year']
+                $filters['fecha_inicio'],
+                $filters['fecha_fin'],
+                $filters['cuentas']
             );
 
             $budgetProgress = $this->dashboardModel->getBudgetProgress(
                 $userId,
-                $filters['year'],
-                $filters['month'],
-                $filters['start_date'],
-                $filters['end_date']
+                $filters['fecha_inicio'],
+                $filters['fecha_fin'],
+                $filters['cuentas']
             );
 
             $topExpenseCategories = $this->dashboardModel->getTopExpenseCategories(
                 $userId,
-                $filters['year'],
-                $filters['month'],
-                $filters['start_date'],
-                $filters['end_date'],
+                $filters['fecha_inicio'],
+                $filters['fecha_fin'],
+                $filters['cuentas'],
                 $filters['limit']
             );
 
             $this->successResponse([
-                'filters' => [
-                    'year' => $filters['year'],
-                    'month' => $filters['month'],
-                    'start_date' => $filters['start_date'],
-                    'end_date' => $filters['end_date']
-                ],
                 'summary' => $summary['summary'],
                 'expenses_by_category' => $expensesByCategory['items'],
                 'income_vs_expenses' => $incomeVsExpenses['items'],
-                'balance_evolution' => $balanceEvolution['items'],
-                'budget_progress' => $budgetProgress['items'],
+                'balance_evolution' => [
+                    'initial_balance' => $balanceEvolution['initial_balance'],
+                    'items' => $balanceEvolution['items']
+                ],
+                'budget_progress' => [
+                    'totals' => $budgetProgress['totals'],
+                    'items' => $budgetProgress['items']
+                ],
                 'top_expense_categories' => $topExpenseCategories['items']
             ], 'Dashboard financiero obtenido correctamente');
         } catch (\Throwable $e) {
@@ -97,22 +95,21 @@ class DashboardController extends BaseController
     public function summary($f3)
     {
         try {
-            $decoded = $this->requireAuth($f3);
-            if (!$decoded || !isset($decoded->data->user_id)) {
+            $userId = $this->resolveAuthenticatedUserId($f3);
+            if ($userId === null) {
                 return;
             }
 
-            $filters = $this->parseFilters($f3, true, false);
+            $filters = $this->parseDashboardFilters($f3, $userId);
             if ($filters === null) {
                 return;
             }
 
             $data = $this->dashboardModel->getSummary(
-                (int)$decoded->data->user_id,
-                $filters['year'],
-                $filters['month'],
-                $filters['start_date'],
-                $filters['end_date']
+                $userId,
+                $filters['fecha_inicio'],
+                $filters['fecha_fin'],
+                $filters['cuentas']
             );
 
             $this->successResponse($data, 'Resumen financiero obtenido correctamente');
@@ -125,22 +122,21 @@ class DashboardController extends BaseController
     public function expensesByCategory($f3)
     {
         try {
-            $decoded = $this->requireAuth($f3);
-            if (!$decoded || !isset($decoded->data->user_id)) {
+            $userId = $this->resolveAuthenticatedUserId($f3);
+            if ($userId === null) {
                 return;
             }
 
-            $filters = $this->parseFilters($f3, true, false);
+            $filters = $this->parseDashboardFilters($f3, $userId);
             if ($filters === null) {
                 return;
             }
 
             $data = $this->dashboardModel->getExpensesByCategory(
-                (int)$decoded->data->user_id,
-                $filters['year'],
-                $filters['month'],
-                $filters['start_date'],
-                $filters['end_date']
+                $userId,
+                $filters['fecha_inicio'],
+                $filters['fecha_fin'],
+                $filters['cuentas']
             );
 
             $this->successResponse($data, 'Gastos por categoría obtenidos correctamente');
@@ -153,19 +149,21 @@ class DashboardController extends BaseController
     public function incomeVsExpenses($f3)
     {
         try {
-            $decoded = $this->requireAuth($f3);
-            if (!$decoded || !isset($decoded->data->user_id)) {
+            $userId = $this->resolveAuthenticatedUserId($f3);
+            if ($userId === null) {
                 return;
             }
 
-            $filters = $this->parseFilters($f3, false, false);
+            $filters = $this->parseDashboardFilters($f3, $userId);
             if ($filters === null) {
                 return;
             }
 
             $data = $this->dashboardModel->getIncomeVsExpenses(
-                (int)$decoded->data->user_id,
-                $filters['year']
+                $userId,
+                $filters['fecha_inicio'],
+                $filters['fecha_fin'],
+                $filters['cuentas']
             );
 
             $this->successResponse($data, 'Comparación de ingresos y gastos obtenida correctamente');
@@ -178,19 +176,21 @@ class DashboardController extends BaseController
     public function balanceEvolution($f3)
     {
         try {
-            $decoded = $this->requireAuth($f3);
-            if (!$decoded || !isset($decoded->data->user_id)) {
+            $userId = $this->resolveAuthenticatedUserId($f3);
+            if ($userId === null) {
                 return;
             }
 
-            $filters = $this->parseFilters($f3, false, false);
+            $filters = $this->parseDashboardFilters($f3, $userId);
             if ($filters === null) {
                 return;
             }
 
             $data = $this->dashboardModel->getBalanceEvolution(
-                (int)$decoded->data->user_id,
-                $filters['year']
+                $userId,
+                $filters['fecha_inicio'],
+                $filters['fecha_fin'],
+                $filters['cuentas']
             );
 
             $this->successResponse($data, 'Evolución del saldo obtenida correctamente');
@@ -203,22 +203,21 @@ class DashboardController extends BaseController
     public function budgetProgress($f3)
     {
         try {
-            $decoded = $this->requireAuth($f3);
-            if (!$decoded || !isset($decoded->data->user_id)) {
+            $userId = $this->resolveAuthenticatedUserId($f3);
+            if ($userId === null) {
                 return;
             }
 
-            $filters = $this->parseFilters($f3, true, false);
+            $filters = $this->parseDashboardFilters($f3, $userId);
             if ($filters === null) {
                 return;
             }
 
             $data = $this->dashboardModel->getBudgetProgress(
-                (int)$decoded->data->user_id,
-                $filters['year'],
-                $filters['month'],
-                $filters['start_date'],
-                $filters['end_date']
+                $userId,
+                $filters['fecha_inicio'],
+                $filters['fecha_fin'],
+                $filters['cuentas']
             );
 
             $this->successResponse($data, 'Progreso de presupuestos obtenido correctamente');
@@ -231,22 +230,21 @@ class DashboardController extends BaseController
     public function topExpenseCategories($f3)
     {
         try {
-            $decoded = $this->requireAuth($f3);
-            if (!$decoded || !isset($decoded->data->user_id)) {
+            $userId = $this->resolveAuthenticatedUserId($f3);
+            if ($userId === null) {
                 return;
             }
 
-            $filters = $this->parseFilters($f3, true, true);
+            $filters = $this->parseDashboardFilters($f3, $userId, true);
             if ($filters === null) {
                 return;
             }
 
             $data = $this->dashboardModel->getTopExpenseCategories(
-                (int)$decoded->data->user_id,
-                $filters['year'],
-                $filters['month'],
-                $filters['start_date'],
-                $filters['end_date'],
+                $userId,
+                $filters['fecha_inicio'],
+                $filters['fecha_fin'],
+                $filters['cuentas'],
                 $filters['limit']
             );
 
@@ -257,80 +255,119 @@ class DashboardController extends BaseController
         }
     }
 
-    private function parseFilters($f3, bool $withMonth, bool $withLimit): ?array
+    private function resolveAuthenticatedUserId($f3): ?int
     {
-        $now = new \DateTime('now');
-
-        $yearRaw = $f3->get('GET.year');
-        $monthRaw = $f3->get('GET.month');
-        $limitRaw = $f3->get('GET.limit');
-
-        $year = $this->toIntOrDefault($yearRaw, (int)$now->format('Y'));
-        if ($year < 2000 || $year > 2100) {
-            $this->validationError([
-                'year' => 'El parámetro year debe estar entre 2000 y 2100'
-            ], 'Parámetros inválidos');
+        $decoded = $this->requireAuth($f3);
+        if (!$decoded || !isset($decoded->data->user_id)) {
             return null;
         }
 
-        $month = null;
-        $startDate = null;
-        $endDate = null;
+        return (int)$decoded->data->user_id;
+    }
 
-        if ($withMonth) {
-            $month = $this->toIntOrDefault($monthRaw, (int)$now->format('n'));
-            if ($month < 1 || $month > 12) {
-                $this->validationError([
-                    'month' => 'El parámetro month debe estar entre 1 y 12'
-                ], 'Parámetros inválidos');
-                return null;
+    private function parseDashboardFilters($f3, int $userId, bool $withLimit = false): ?array
+    {
+        $body = $this->parseJsonOrEncryptedBody($f3);
+        if (empty($body)) {
+            return null;
+        }
+
+        $errors = [];
+
+        $fechaInicio = $body['fecha_inicio'] ?? null;
+        $fechaFin = $body['fecha_fin'] ?? null;
+
+        if (!$this->isValidDateString($fechaInicio)) {
+            $errors['fecha_inicio'] = 'fecha_inicio es obligatoria y debe usar el formato YYYY-MM-DD';
+        }
+
+        if (!$this->isValidDateString($fechaFin)) {
+            $errors['fecha_fin'] = 'fecha_fin es obligatoria y debe usar el formato YYYY-MM-DD';
+        }
+
+        if (
+            !isset($errors['fecha_inicio'])
+            && !isset($errors['fecha_fin'])
+            && strtotime($fechaFin) < strtotime($fechaInicio)
+        ) {
+            $errors['fecha_fin'] = 'fecha_fin no puede ser menor que fecha_inicio';
+        }
+
+        if (!array_key_exists('cuentas', $body) || !is_array($body['cuentas'])) {
+            $errors['cuentas'] = 'cuentas debe ser un arreglo de IDs enteros positivos';
+        }
+
+        $accountIds = [];
+        if (!isset($errors['cuentas'])) {
+            foreach ($body['cuentas'] as $accountId) {
+                if (!$this->isPositiveIntegerValue($accountId)) {
+                    $errors['cuentas'] = 'cuentas solo puede contener IDs enteros positivos';
+                    break;
+                }
+
+                $accountIds[] = (int)$accountId;
             }
 
-            $range = $this->resolveMonthDateRange($year, $month);
-            $startDate = $range['start_date'];
-            $endDate = $range['end_date'];
+            if (!isset($errors['cuentas'])) {
+                $accountIds = array_values(array_unique($accountIds));
+            }
         }
 
         $limit = 5;
-        if ($withLimit) {
-            $limit = $this->toIntOrDefault($limitRaw, 5);
-            if ($limit < 1 || $limit > 10) {
-                $this->validationError([
-                    'limit' => 'El parámetro limit debe estar entre 1 y 10'
-                ], 'Parámetros inválidos');
-                return null;
+        if ($withLimit && array_key_exists('limit', $body)) {
+            if (!$this->isPositiveIntegerValue($body['limit'])) {
+                $errors['limit'] = 'limit debe ser un entero entre 1 y 10';
+            } else {
+                $limit = (int)$body['limit'];
             }
         }
 
+        if ($withLimit && ($limit < 1 || $limit > 10)) {
+            $errors['limit'] = 'limit debe ser un entero entre 1 y 10';
+        }
+
+        if (!empty($accountIds)) {
+            $validAccountIds = $this->dashboardModel->validateUserAccounts($userId, $accountIds);
+            if (count($validAccountIds) !== count($accountIds)) {
+                $errors['cuentas'] = 'Una o más cuentas no existen o no pertenecen al usuario autenticado';
+            } else {
+                $accountIds = $validAccountIds;
+            }
+        }
+
+        if (!empty($errors)) {
+            $this->validationError($errors, 'Parámetros inválidos');
+            return null;
+        }
+
         return [
-            'year' => $year,
-            'month' => $month,
-            'start_date' => $startDate,
-            'end_date' => $endDate,
+            'fecha_inicio' => $fechaInicio,
+            'fecha_fin' => $fechaFin,
+            'cuentas' => $accountIds,
             'limit' => $limit
         ];
     }
 
-    private function resolveMonthDateRange(int $year, int $month): array
+    private function isValidDateString($value): bool
     {
-        $date = \DateTime::createFromFormat('Y-n-j', $year . '-' . $month . '-1');
+        if (!is_string($value)) {
+            return false;
+        }
 
-        return [
-            'start_date' => $date->format('Y-m-01'),
-            'end_date' => $date->format('Y-m-t')
-        ];
+        $date = \DateTime::createFromFormat('Y-m-d', $value);
+        return $date instanceof \DateTime && $date->format('Y-m-d') === $value;
     }
 
-    private function toIntOrDefault($value, int $default): int
+    private function isPositiveIntegerValue($value): bool
     {
-        if ($value === null || $value === '') {
-            return $default;
+        if (is_int($value)) {
+            return $value > 0;
         }
 
-        if (!is_numeric($value)) {
-            return PHP_INT_MIN;
+        if (is_string($value) && preg_match('/^[1-9][0-9]*$/', $value) === 1) {
+            return true;
         }
 
-        return (int)$value;
+        return false;
     }
 }

@@ -8,11 +8,8 @@
   "item": [
     {
       "name": "Resumen",
-      "protocolProfileBehavior": {
-        "disableBodyPruning": true
-      },
       "request": {
-        "method": "GET",
+        "method": "POST",
         "header": [
           {
             "key": "Authorization",
@@ -48,7 +45,7 @@
     {
       "name": "Gastos por categoría",
       "request": {
-        "method": "GET",
+        "method": "POST",
         "header": [
           {
             "key": "Authorization",
@@ -56,6 +53,15 @@
             "type": "text"
           }
         ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n\"fecha_inicio\": \"2026-01-01\",\r\n\"fecha_fin\": \"2026-08-08\",\r\n\"cuentas\": [39, 40]\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
         "url": {
           "raw": "https://api.gfinvia.com/dashboard/expenses-by-category",
           "protocol": "https",
@@ -74,11 +80,8 @@
     },
     {
       "name": "Comparación de ingresos y gastos",
-      "protocolProfileBehavior": {
-        "disableBodyPruning": true
-      },
       "request": {
-        "method": "GET",
+        "method": "POST",
         "header": [
           {
             "key": "Authorization",
@@ -88,7 +91,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"account_ids\": [\r\n    35\r\n  ],\r\n  \"category_ids\": [\r\n    20,\r\n    22\r\n  ],\r\n  \"type\": \"gasto\"\r\n\r\n}",
+          "raw": "{\r\n\"fecha_inicio\": \"2026-01-01\",\r\n\"fecha_fin\": \"2026-08-08\",\r\n\"cuentas\": [39, 40]\r\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -113,11 +116,8 @@
     },
     {
       "name": "Evolución del saldo",
-      "protocolProfileBehavior": {
-        "disableBodyPruning": true
-      },
       "request": {
-        "method": "GET",
+        "method": "POST",
         "header": [
           {
             "key": "Authorization",
@@ -127,7 +127,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"transac_id\": 11,\r\n  \"categoria_id\": 21,\r\n  \"cuenta_id\": 20,\r\n  \"fecha\": \"2025-10-14\",\r\n  \"monto\": 150.75,\r\n  \"tipo\": \"Ingreso\",\r\n  \"descripcion\": \"Pago recibido por servicios\"\r\n}\r\n\r\n",
+          "raw": "{\r\n\"fecha_inicio\": \"2026-01-01\",\r\n\"fecha_fin\": \"2026-08-08\",\r\n\"cuentas\": [39, 40]\r\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -152,11 +152,8 @@
     },
     {
       "name": "Progreso de presupuestos",
-      "protocolProfileBehavior": {
-        "disableBodyPruning": true
-      },
       "request": {
-        "method": "GET",
+        "method": "POST",
         "header": [
           {
             "key": "Authorization",
@@ -166,7 +163,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"transac_id\": 10\r\n}",
+          "raw": "{\r\n\"fecha_inicio\": \"2026-01-01\",\r\n\"fecha_fin\": \"2026-08-08\",\r\n\"cuentas\": [39, 40]\r\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -199,11 +196,8 @@
     },
     {
       "name": "Categorías con mayores gastos",
-      "protocolProfileBehavior": {
-        "disableBodyPruning": true
-      },
       "request": {
-        "method": "GET",
+        "method": "POST",
         "header": [
           {
             "key": "Authorization",
@@ -213,7 +207,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"transac_id\": 10\r\n}",
+          "raw": "{\r\n\"fecha_inicio\": \"2026-01-01\",\r\n\"fecha_fin\": \"2026-08-08\",\r\n\"cuentas\": [39, 40]\r\n}",
           "options": {
             "raw": {
               "language": "json"
