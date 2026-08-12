@@ -1,0 +1,40 @@
+# Dependencias regenerables
+/vendor/
+/node_modules/
+# Este backend no usa npm; estos archivos pertenecen a una instalación local antigua.
+/package.json
+/package-lock.json
+
+# Configuración privada y secretos
+/.env
+/.env.*
+!/.env.example
+/config.local.ini
+
+# Dumps y respaldos con datos
+/db/sql/backup.sql
+/db/sql/finanzas_db.sql
+*.sql.gz
+*.sql.zip
+*.dump
+
+# Colecciones locales de Postman (pueden contener tokens y datos de prueba)
+/postman/*.postman_collection.json
+/postman/*.postman_environment.json
+
+# Logs, caché y temporales
+*.log
+/logs/
+/cache/
+/tmp/
+/coverage/
+/.phpunit.cache/
+
+# Sistema operativo y editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Metadato heredado del framework, no perteneciente a este proyecto
+/.github/FUNDING.yml

@@ -33,7 +33,8 @@ class UsersController extends BaseController
 
             // Asumir que el cliente envía email/password en texto plano (igual que login)
             $emailPlain = $requestData['email'];
-            $passwordPlain = $requestData['password'];
+            // La contraseña se valida y hashea sin transformaciones HTML.
+            $passwordPlain = $body['password'];
 
             // Mantener consistencia con otras funciones: colocar password en requestData
             $requestData['password'] = $passwordPlain;
@@ -126,8 +127,9 @@ class UsersController extends BaseController
 
     public function profile($f3)
     {
-        $this->validateToken($f3);
-        $this->userModel->load(['id = ?', $f3->get('user_id')]);
+        $this->validateRequestMethod('GET');
+        $userId = $this->validateToken($f3);
+        $this->userModel->load(['id = ?', $userId]);
         
         if ($this->userModel->loaded()) {
             $this->successResponse([
@@ -140,20 +142,32 @@ class UsersController extends BaseController
 
     public function update($f3)
     {
-        $userId = $f3->get('PARAMS.user_id');
-        
+        $this->validateRequestMethod('POST');
+        $userId = $this->validateToken($f3);
         try {
+            $requestData = $this->parseAndValidateRequest($f3->get('BODY'));
+            $requestedId = $f3->get('PARAMS.user_id') ?: ($requestData['user_id'] ?? ($requestData['id'] ?? null));
+            if ($requestedId !== null && (int)$requestedId !== $userId) {
+                $this->codedErrorResponse('No tiene permiso para modificar otro usuario', 403, 'FORBIDDEN');
+            }
+            $allowed = ['nombre', 'apellidos'];
+            if (array_diff(array_keys($requestData), array_merge($allowed, ['id', 'user_id']))) {
+                $this->codedErrorResponse('La solicitud contiene campos no permitidos', 400, 'UNEXPECTED_FIELD');
+            }
+            $profileData = array_intersect_key($requestData, array_flip($allowed));
+            if (!$profileData) {
+                $this->codedErrorResponse('No se proporcionaron campos válidos', 400, 'UNEXPECTED_FIELD');
+            }
             $this->userModel->load(['id = ?', $userId]);
             
             if (!$this->userModel->loaded()) {
                 throw new \RuntimeException('Usuario no encontrado', 404);
             }
             
-            $requestData = $this->parseAndValidateRequest($f3->get('BODY'));
-            $this->updateUserData($requestData);
+            $this->updateUserData($profileData);
             
             $this->successResponse([
-                'id' => $this->userModel->get('id')
+                'user' => $this->getUserResponseData()
             ], 'Usuario actualizado correctamente');
         } catch (\Exception $e) {
             $this->handleError($e);
@@ -161,102 +175,59 @@ class UsersController extends BaseController
     }
 
     public function forgotPassword($f3)
-{
-    $this->validateRequestMethod('POST');
-
-        try {
-            $requestData = $this->parseAndValidateRequest($f3->get('BODY'));
-
-            // Asumir email y new_password en texto plano (igual que login)
-            $emailDecrypt = $requestData['email'];
-            $newPasswordDecrypt = $requestData['new_password'];
-
-        $emailEncrypted = \SecurityHelper::encryptData($emailDecrypt, $this->encryptionKey, $this->iv);
-        $this->userModel->load(['email = ?', $emailEncrypted]);
-
-        if (!$this->userModel->loaded()) {
-            throw new \RuntimeException('Usuario no encontrado con ese email', 404);
-        }
-
-        if (password_verify($newPasswordDecrypt, $this->userModel->password)) {
-            throw new \RuntimeException('La nueva contraseña no puede ser igual a la anterior', 400);
-        }
-
-        $this->userModel->set('password', password_hash($newPasswordDecrypt, PASSWORD_BCRYPT));
-
-        if (!$this->userModel->save()) {
-            throw new \RuntimeException('Error al actualizar la contraseña', 500);
-        }
-
-        $this->successResponse([], 'Contraseña actualizada correctamente');
-
-    } catch (\Exception $e) {
-        $this->handleError($e);
+    {
+        $this->validateRequestMethod('POST');
+        $this->codedErrorResponse(
+            'La recuperación segura de contraseña requiere verificación por correo.',
+            501,
+            'PASSWORD_RESET_VERIFICATION_REQUIRED'
+        );
     }
-}
 
     public function delete($f3)
-{
-    $body = $this->parseJsonOrEncryptedBody($f3);
-    if (empty($body)) {
-        return;
-    }
-    $userId = $body['id'] ?? null;
-    
-    try {
-        if (!$userId) {
-            throw new \RuntimeException('ID no proporcionado', 400);
+    {
+        $this->validateRequestMethod('POST');
+        $userId = $this->validateToken($f3);
+        $body = $this->parseJsonOrEncryptedBody($f3);
+        $requestedId = $body['user_id'] ?? ($body['id'] ?? $userId);
+        if ((int)$requestedId !== $userId) {
+            $this->codedErrorResponse('No tiene permiso para eliminar otro usuario', 403, 'FORBIDDEN');
         }
-
-        $this->userModel->load(['id = ?', $userId]);
-
-        if (!$this->userModel->loaded()) {
-            throw new \RuntimeException('Usuario no encontrado', 404);
+        if (array_diff(array_keys($body), ['id', 'user_id'])) {
+            $this->codedErrorResponse('La solicitud contiene campos no permitidos', 400, 'UNEXPECTED_FIELD');
         }
-
-        $db = $f3->get('DB');
-        $db->exec("DELETE FROM sesiones WHERE user_id = ?", [$userId]);
-
-        $this->userModel->erase();
-
-        $this->successResponse(['id' => $userId], 'Usuario eliminado correctamente');
-    } catch (\Exception $e) {
-        $this->handleError($e);
+        try {
+            $this->userModel->load(['id = ?', $userId]);
+            if (!$this->userModel->loaded()) {
+                $this->codedErrorResponse('Usuario no encontrado', 404, 'USER_NOT_FOUND');
+            }
+            $db = $f3->get('DB');
+            foreach (['cuentas', 'categorias', 'transacciones', 'transferencias'] as $table) {
+                if ($db->exec("SELECT 1 FROM {$table} WHERE usuario_id = ? LIMIT 1", [$userId])) {
+                    $this->codedErrorResponse('La cuenta tiene datos financieros asociados', 409, 'ACCOUNT_DELETION_CONFLICT');
+                }
+            }
+            $db->begin();
+            try {
+                $db->exec('DELETE FROM sesiones WHERE user_id = ?', [$userId]);
+                $db->exec('DELETE FROM usuarios WHERE id = ?', [$userId]);
+                $db->commit();
+            } catch (\Throwable $e) {
+                $db->rollback();
+                throw $e;
+            }
+            $this->successResponse(['id' => $userId], 'Usuario eliminado correctamente');
+        } catch (\Exception $e) {
+            $this->handleError($e);
+        }
     }
-}
 
 
 public function listAll($f3)
 {
-    try {
-        $users = $this->userModel->find();
-        $userList = [];
-
-        foreach ($users as $user) {
-            $userData = $user->cast();
-
-            try {
-                
-                $userData['email'] = \SecurityHelper::decryptData(
-                    $userData['email'],
-                    $this->encryptionKey,
-                    $this->iv
-                );
-            } catch (\Exception $e) {
-                $userData['email'] = 'Error al desencriptar';
-            }
-           
-            $userData['password'];
-            $userList[] = $userData;
-        }
-
-        $this->successResponse([
-            'users' => $userList,
-            'count' => count($userList)
-        ], 'Lista de usuarios obtenida');
-    } catch (\Exception $e) {
-        $this->handleError($e);
-    }
+    $this->validateRequestMethod('GET');
+    $this->validateToken($f3);
+    $this->codedErrorResponse('No tiene permiso para listar usuarios', 403, 'FORBIDDEN');
 }
 
     // Wrapper to match routes.ini (GET /users/list)
@@ -266,23 +237,26 @@ public function listAll($f3)
     }
 
 
-    protected function validateToken($f3)
-        {
-            try {
-                $token = \JwtHelper::getBearerToken($f3);
-                $decoded = \JwtHelper::validateToken($token, $this->jwtKey);
-            
-                if (!isset($decoded->data->user_id)) {
-                    throw new \RuntimeException('Token inválido: user_id no presente', 401);
-                }
-            
-                \SessionHelper::verifySession($f3, $decoded->data->user_id, $token);
-                $f3->set('user_id', $decoded->data->user_id);
-            
-            } catch (\Exception $e) {
-                $this->handleError($e);
-            }
+    protected function validateToken($f3): int
+    {
+        try {
+            $token = \JwtHelper::getBearerToken($f3);
+            $decoded = \JwtHelper::validateToken($token, $this->jwtKey);
+        } catch (\Exception $e) {
+            $this->codedErrorResponse('Autenticación requerida', 401, 'AUTHENTICATION_REQUIRED');
         }
+        if (!isset($decoded->data->user_id) || !is_numeric($decoded->data->user_id)) {
+            $this->codedErrorResponse('Autenticación requerida', 401, 'AUTHENTICATION_REQUIRED');
+        }
+        $userId = (int)$decoded->data->user_id;
+        try {
+            \SessionHelper::verifySession($f3, $userId, $token);
+        } catch (\Exception $e) {
+            $this->codedErrorResponse('La sesión no es válida', 401, 'INVALID_SESSION');
+        }
+        $f3->set('user_id', $userId);
+        return $userId;
+    }
 
 
     protected function validateUserData(array $data, string $email): void
@@ -317,17 +291,6 @@ public function listAll($f3)
             $this->userModel->set('apellidos', \SecurityHelper::sanitizeInput($data['apellidos']));
         }
         
-        if (!empty($data['email'])) {
-            $this->userModel->set('email', \SecurityHelper::encryptData($data['email'], $this->encryptionKey, $this->iv));
-        }
-        
-        if (!empty($data['password'])) {
-            if (password_verify($data['password'], $this->userModel->password)) {
-                throw new \RuntimeException('La nueva contraseña no puede ser igual a la anterior', 400);
-            }
-            $this->userModel->set('password', password_hash($data['password'], PASSWORD_BCRYPT));
-        }
-        
         if (!$this->userModel->save()) {
             throw new \RuntimeException('Error al actualizar el usuario');
         }
@@ -349,7 +312,7 @@ public function listAll($f3)
     }
 
     unset($userData['password']);
-    return $userData;
+    return array_intersect_key($userData, array_flip(['id', 'nombre', 'apellidos', 'email']));
 }
 
 }

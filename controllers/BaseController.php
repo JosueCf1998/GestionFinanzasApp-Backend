@@ -17,8 +17,8 @@ class BaseController
         require_once __DIR__ . '/../helpers/SessionHelper.php';
         require_once __DIR__ . '/../helpers/AesDecryptor.php';
 
-        $this->jwtKey = getenv('JWT_SECRET') ?: '$#Gre1410#$';
-        $this->encryptionKey = getenv('ENCRYPTION_KEY') ?: '$#Gre1410';
+        $this->jwtKey = $this->requiredEnvironmentValue('JWT_SECRET');
+        $this->encryptionKey = $this->requiredEnvironmentValue('ENCRYPTION_KEY');
         $this->iv = \SecurityHelper::generateIV($this->encryptionKey);
     }
 
@@ -30,6 +30,11 @@ class BaseController
     protected function errorResponse(string $message = 'Error en la operación', int $code = 500, array $errors = []): void
     {
         \ResponseHelper::error($message, $code, $errors);
+    }
+
+    protected function codedErrorResponse(string $message, int $httpCode, string $errorCode): void
+    {
+        \ResponseHelper::codedError($message, $httpCode, $errorCode);
     }
 
     protected function validationError(array $errors = [], string $message = 'Error de validación'): void
@@ -88,7 +93,7 @@ class BaseController
             try {
                 $bodyDecrypted = \AesDecryptor::decrypt(
                     $dataField,
-                    getenv('ENCRYPTION_JSON') ?: "TuClaveSuperSecreta@2024"
+                    $this->requiredEnvironmentValue('ENCRYPTION_JSON')
                 );
             } catch (\Exception $e) {
                 $this->errorResponse('Error al desencriptar payload JSON: ' . $e->getMessage(), 400);
@@ -110,8 +115,21 @@ class BaseController
 
     protected function handleError(\Exception $e): void
     {
-        error_log('Error: ' . $e->getMessage());
-        $this->errorResponse($e->getMessage(), (int)($e->getCode() ?: 500));
+        $httpCode = (int)($e->getCode() ?: 500);
+        error_log(sprintf('Application error [%s:%d]', get_class($e), $httpCode));
+        if ($httpCode < 400 || $httpCode >= 500) {
+            $this->errorResponse('Error interno del servidor', 500);
+        }
+        $this->errorResponse($e->getMessage(), $httpCode);
+    }
+
+    private function requiredEnvironmentValue(string $name): string
+    {
+        $value = getenv($name);
+        if ($value === false || $value === '') {
+            throw new \RuntimeException('Configuración de seguridad incompleta');
+        }
+        return $value;
     }
     
 }
