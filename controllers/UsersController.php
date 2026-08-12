@@ -7,11 +7,18 @@ require_once __DIR__ . '/BaseController.php';
 class UsersController extends BaseController
 {
     protected $userModel;
+    protected $emailService;
 
     public function __construct()
     {
         parent::__construct();
         $this->userModel = new \m_usuarios();
+        $this->emailService = new \EmailService();
+    }
+
+    public function setEmailService(\EmailService $emailService): void
+    {
+        $this->emailService = $emailService;
     }
 
     public function register($f3)
@@ -32,7 +39,7 @@ class UsersController extends BaseController
             }
 
             // Asumir que el cliente envía email/password en texto plano (igual que login)
-            $emailPlain = $requestData['email'];
+            $emailPlain = $this->normalizeEmail((string)$body['email']);
             // No transformar la contraseña como HTML antes de hashearla.
             $passwordPlain = $body['password'];
 
@@ -40,13 +47,24 @@ class UsersController extends BaseController
             $requestData['password'] = $passwordPlain;
 
             $this->validateUserData($requestData, $emailPlain);
-            $this->prepareNewUser($requestData, $emailPlain, $passwordPlain);
-            
-            if ($this->userModel->save()) {
-                $this->successResponse([], 'Usuario registrado exitosamente');
-            } else {
-                throw new \RuntimeException('Error al guardar el usuario');
+            $db = $f3->get('DB');
+            $db->begin();
+            try {
+                $this->prepareNewUser($requestData, $emailPlain, $passwordPlain);
+                if (!$this->userModel->save()) throw new \RuntimeException('Error al guardar el usuario');
+                $code = (new \EmailCodeService($db))->create((int)$this->userModel->id, \EmailCodeService::EMAIL_VERIFICATION);
+                $db->commit();
+            } catch (\Throwable $e) {
+                $db->rollback();
+                throw $e;
             }
+            $this->emailService->sendVerificationCode($emailPlain, (string)$this->userModel->nombre, $code);
+            $this->successResponse([
+                'userId' => (int)$this->userModel->id,
+                'maskedEmail' => $this->maskEmail($emailPlain),
+                'expiresIn' => \EmailCodeService::EXPIRES_IN,
+                'resendAfter' => \EmailCodeService::RESEND_AFTER
+            ], 'Te enviamos un código de verificación.');
         } catch (\Exception $e) {
             $this->handleError($e);
         }
@@ -67,7 +85,7 @@ class UsersController extends BaseController
                 throw new \InvalidArgumentException('Email y/o password no proporcionados', 400);
             }
 
-            $emailPlain = $body['email'];
+            $emailPlain = $this->normalizeEmail((string)$body['email']);
             $passwordPlain = $body['password'];
 
             $emailEncrypted = \SecurityHelper::encryptData($emailPlain, $this->encryptionKey, $this->iv);
@@ -98,6 +116,13 @@ class UsersController extends BaseController
 
             if (!password_verify($passwordPlain, $usuarioEncontrado->password)) {
                 throw new \RuntimeException('Credenciales inválidas.', 401);
+            }
+
+            if (empty($usuarioEncontrado->email_verified_at)) {
+                $this->codedErrorResponse('Debes verificar tu correo antes de iniciar sesión.', 403, 'EMAIL_NOT_VERIFIED', [
+                    'userId' => (int)$usuarioEncontrado->id,
+                    'maskedEmail' => $this->maskEmail($emailPlain)
+                ]);
             }
 
             $accountModel = new \m_cuentas();
@@ -189,6 +214,107 @@ class UsersController extends BaseController
             501,
             'PASSWORD_RESET_VERIFICATION_REQUIRED'
         );
+    }
+
+    public function verifyEmail($f3)
+    {
+        $this->validateRequestMethod('POST');
+        try {
+            $body = $this->requiredBody($f3, ['userId', 'code']);
+            $user = $this->loadUser((int)$body['userId']);
+            if (!empty($user->email_verified_at)) throw new \AuthFlowException('El correo ya fue verificado.', 'EMAIL_ALREADY_VERIFIED', 409);
+            $db = $f3->get('DB');
+            $db->begin();
+            try {
+                (new \EmailCodeService($db))->verify((int)$user->id, \EmailCodeService::EMAIL_VERIFICATION, (string)$body['code']);
+                $db->exec('UPDATE usuarios SET email_verified_at = ? WHERE id = ?', [date('Y-m-d H:i:s'), (int)$user->id]);
+                $db->commit();
+            } catch (\AuthFlowException $e) {
+                if (in_array($e->errorCode, ['VERIFICATION_CODE_INVALID', 'VERIFICATION_ATTEMPTS_EXCEEDED'], true)) $db->commit();
+                else $db->rollback();
+                throw $e;
+            } catch (\Throwable $e) { $db->rollback(); throw $e; }
+            $this->successResponse([], 'Correo verificado correctamente.');
+        } catch (\Exception $e) { $this->handleError($e); }
+    }
+
+    public function resendVerificationCode($f3)
+    {
+        $this->validateRequestMethod('POST');
+        try {
+            $body = $this->requiredBody($f3, ['userId']);
+            $user = $this->loadUser((int)$body['userId']);
+            if (!empty($user->email_verified_at)) throw new \AuthFlowException('El correo ya fue verificado.', 'EMAIL_ALREADY_VERIFIED', 409);
+            $code = (new \EmailCodeService($f3->get('DB')))->create((int)$user->id, \EmailCodeService::EMAIL_VERIFICATION, true);
+            $email = $this->decryptEmail((string)$user->email);
+            $this->emailService->sendVerificationCode($email, (string)$user->nombre, $code);
+            $this->successResponse(['maskedEmail' => $this->maskEmail($email), 'expiresIn' => 600, 'resendAfter' => 60], 'Te enviamos un nuevo código.');
+        } catch (\Exception $e) { $this->handleError($e); }
+    }
+
+    public function requestPasswordReset($f3)
+    {
+        $this->validateRequestMethod('POST');
+        try {
+            $body = $this->requiredBody($f3, ['email']);
+            $email = $this->normalizeEmail((string)$body['email']);
+            $user = $this->findUserByEmail($email);
+            if ($user) {
+                try {
+                    $code = (new \EmailCodeService($f3->get('DB')))->create((int)$user->id, \EmailCodeService::PASSWORD_RESET, true);
+                    $this->emailService->sendPasswordResetCode($email, (string)$user->nombre, $code);
+                } catch (\AuthFlowException $ignored) {
+                    // Mantener respuesta indistinguible para evitar enumeración.
+                }
+            }
+            $this->successResponse(['expiresIn' => 600, 'resendAfter' => 60], 'Si existe una cuenta asociada, enviaremos un código.');
+        } catch (\Exception $e) { $this->handleError($e); }
+    }
+
+    public function verifyPasswordReset($f3)
+    {
+        $this->validateRequestMethod('POST');
+        try {
+            $body = $this->requiredBody($f3, ['email', 'code']);
+            $user = $this->findUserByEmail($this->normalizeEmail((string)$body['email']));
+            if (!$user) throw new \AuthFlowException('Código inválido.', 'VERIFICATION_CODE_INVALID');
+            $db = $f3->get('DB'); $db->begin();
+            try {
+                $service = new \EmailCodeService($db);
+                $codeRow = $service->verify((int)$user->id, \EmailCodeService::PASSWORD_RESET, (string)$body['code'], false);
+                $token = $service->attachResetToken((int)$codeRow['id']);
+                $db->commit();
+            } catch (\AuthFlowException $e) {
+                if (in_array($e->errorCode, ['VERIFICATION_CODE_INVALID', 'VERIFICATION_ATTEMPTS_EXCEEDED'], true)) $db->commit();
+                else $db->rollback();
+                throw $e;
+            } catch (\Throwable $e) { $db->rollback(); throw $e; }
+            $this->successResponse(['resetToken' => $token, 'expiresIn' => 600], 'Código verificado.');
+        } catch (\Exception $e) { $this->handleError($e); }
+    }
+
+    public function confirmPasswordReset($f3)
+    {
+        $this->validateRequestMethod('POST');
+        try {
+            $body = $this->requiredBody($f3, ['resetToken', 'newPassword']);
+            $password = (string)$body['newPassword'];
+            $this->validatePassword($password);
+            $db = $f3->get('DB'); $db->begin();
+            try {
+                $service = new \EmailCodeService($db);
+                $reset = $service->findResetToken((string)$body['resetToken']);
+                $user = $this->loadUser((int)$reset['user_id']);
+                if (password_verify($password, (string)$user->password)) throw new \InvalidArgumentException('La nueva contraseña debe ser diferente.', 400);
+                $db->exec('UPDATE usuarios SET password = ? WHERE id = ?', [password_hash($password, PASSWORD_DEFAULT), (int)$user->id]);
+                $db->exec('DELETE FROM sesiones WHERE user_id = ?', [(int)$user->id]);
+                $service->invalidateResetToken((int)$reset['id']);
+                $db->commit();
+            } catch (\Throwable $e) { $db->rollback(); throw $e; }
+            try { $this->emailService->sendPasswordChangedNotice($this->decryptEmail((string)$user->email), (string)$user->nombre); }
+            catch (\AuthFlowException $ignored) { error_log('Password change notice delivery failed'); }
+            $this->successResponse([], 'Contraseña actualizada. Inicia sesión nuevamente.');
+        } catch (\Exception $e) { $this->handleError($e); }
     }
 
     public function delete($f3)
@@ -286,9 +412,7 @@ public function listAll($f3)
 
     protected function validateUserData(array $data, string $email): void
     {   
-        if (strlen($data['password']) < 8) {
-            throw new \InvalidArgumentException('La contraseña debe tener al menos 8 caracteres', 400);
-        }
+        $this->validatePassword((string)$data['password']);
         
         $this->userModel->load(['email = ?', \SecurityHelper::encryptData($email, $this->encryptionKey, $this->iv)]);
         if ($this->userModel->loaded()) {
@@ -304,6 +428,7 @@ public function listAll($f3)
         $this->userModel->set('email', \SecurityHelper::encryptData($email, $this->encryptionKey, $this->iv));
         $this->userModel->set('password', password_hash($password, PASSWORD_BCRYPT));
         $this->userModel->set('fecha_registro', date('Y-m-d H:i:s'));
+        $this->userModel->set('email_verified_at', null);
     }
 
     protected function updateUserData(array $data): void
@@ -339,5 +464,59 @@ public function listAll($f3)
     unset($userData['password']);
     return array_intersect_key($userData, array_flip(['id', 'nombre', 'apellidos', 'email']));
 }
+
+    protected function requiredBody($f3, array $fields): array
+    {
+        $body = $this->parseJsonOrEncryptedBody($f3);
+        foreach ($fields as $field) {
+            if (!array_key_exists($field, $body) || $body[$field] === '') throw new \InvalidArgumentException('Falta un campo requerido.', 400);
+        }
+        if (array_diff(array_keys($body), $fields)) $this->codedErrorResponse('La solicitud contiene campos no permitidos', 400, 'UNEXPECTED_FIELD');
+        return $body;
+    }
+
+    protected function normalizeEmail(string $email): string
+    {
+        $email = strtolower(trim($email));
+        if (strlen($email) > 150 || !filter_var($email, FILTER_VALIDATE_EMAIL)) throw new \InvalidArgumentException('Correo electrónico inválido.', 400);
+        return $email;
+    }
+
+    protected function validatePassword(string $password): void
+    {
+        if (strlen($password) < 8 || strlen($password) > 128) throw new \InvalidArgumentException('La contraseña debe tener entre 8 y 128 caracteres.', 400);
+    }
+
+    protected function loadUser(int $id)
+    {
+        $this->userModel->reset(); $this->userModel->load(['id = ?', $id]);
+        if (!$this->userModel->loaded()) $this->codedErrorResponse('Usuario no encontrado', 404, 'USER_NOT_FOUND');
+        return $this->userModel;
+    }
+
+    protected function findUserByEmail(string $email)
+    {
+        $this->userModel->reset();
+        $this->userModel->load(['email = ?', \SecurityHelper::encryptData($email, $this->encryptionKey, $this->iv)]);
+        if ($this->userModel->loaded()) return $this->userModel;
+        foreach ($this->userModel->find() as $user) {
+            try { if (hash_equals($email, strtolower(trim($this->decryptEmail((string)$user->email))))) return $user; }
+            catch (\Throwable $ignored) {}
+        }
+        return null;
+    }
+
+    protected function decryptEmail(string $encrypted): string
+    {
+        $email = \SecurityHelper::decryptData($encrypted, $this->encryptionKey, $this->iv);
+        if (!is_string($email) || $email === '') throw new \RuntimeException('No se pudo procesar el correo.');
+        return $email;
+    }
+
+    protected function maskEmail(string $email): string
+    {
+        [$local, $domain] = array_pad(explode('@', $email, 2), 2, '');
+        return substr($local, 0, 1) . '***@' . $domain;
+    }
 
 }

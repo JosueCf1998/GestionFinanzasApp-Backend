@@ -16,6 +16,9 @@ class BaseController
         require_once __DIR__ . '/../helpers/JwtHelper.php';
         require_once __DIR__ . '/../helpers/SessionHelper.php';
         require_once __DIR__ . '/../helpers/AesDecryptor.php';
+        require_once __DIR__ . '/../exceptions/AuthFlowException.php';
+        require_once __DIR__ . '/../services/EmailService.php';
+        require_once __DIR__ . '/../services/EmailCodeService.php';
 
         $this->jwtKey = getenv('JWT_SECRET') ?: '$#Gre1410#$';
         $this->encryptionKey = getenv('ENCRYPTION_KEY') ?: '$#Gre1410';
@@ -32,9 +35,9 @@ class BaseController
         \ResponseHelper::error($message, $code, $errors);
     }
 
-    protected function codedErrorResponse(string $message, int $httpCode, string $errorCode): void
+    protected function codedErrorResponse(string $message, int $httpCode, string $errorCode, array $data = []): void
     {
-        \ResponseHelper::codedError($message, $httpCode, $errorCode);
+        \ResponseHelper::codedError($message, $httpCode, $errorCode, $data);
     }
 
     protected function validationError(array $errors = [], string $message = 'Error de validación'): void
@@ -115,6 +118,9 @@ class BaseController
 
     protected function handleError(\Exception $e): void
     {
+        if ($e instanceof \AuthFlowException) {
+            $this->codedErrorResponse($e->getMessage(), (int)$e->getCode(), $e->errorCode);
+        }
         $httpCode = (int)($e->getCode() ?: 500);
         error_log(sprintf('Application error [%s:%d]', get_class($e), $httpCode));
 

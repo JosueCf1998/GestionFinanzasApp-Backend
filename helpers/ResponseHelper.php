@@ -29,13 +29,14 @@ class ResponseHelper
         exit;
     }
 
-    public static function codedError(string $message, int $httpCode, string $errorCode): void
+    public static function codedError(string $message, int $httpCode, string $errorCode, array $data = []): void
     {
         header('Content-Type: application/json');
         http_response_code($httpCode);
         echo json_encode([
             'success' => false,
             'message' => $message,
+            'data' => $data,
             'error' => ['code' => $errorCode],
             'timestamp' => date('c')
         ]);
