@@ -32,6 +32,11 @@ class BaseController
         \ResponseHelper::error($message, $code, $errors);
     }
 
+    protected function codedErrorResponse(string $message, int $httpCode, string $errorCode): void
+    {
+        \ResponseHelper::codedError($message, $httpCode, $errorCode);
+    }
+
     protected function validationError(array $errors = [], string $message = 'Error de validación'): void
     {
         \ResponseHelper::validationError($errors, $message);
@@ -110,8 +115,14 @@ class BaseController
 
     protected function handleError(\Exception $e): void
     {
-        error_log('Error: ' . $e->getMessage());
-        $this->errorResponse($e->getMessage(), (int)($e->getCode() ?: 500));
+        $httpCode = (int)($e->getCode() ?: 500);
+        error_log(sprintf('Application error [%s:%d]', get_class($e), $httpCode));
+
+        if ($httpCode < 400 || $httpCode >= 500) {
+            $this->errorResponse('Error interno del servidor', 500);
+        }
+
+        $this->errorResponse($e->getMessage(), $httpCode);
     }
     
 }

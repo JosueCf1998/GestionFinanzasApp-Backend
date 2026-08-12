@@ -29,6 +29,19 @@ class ResponseHelper
         exit;
     }
 
+    public static function codedError(string $message, int $httpCode, string $errorCode): void
+    {
+        header('Content-Type: application/json');
+        http_response_code($httpCode);
+        echo json_encode([
+            'success' => false,
+            'message' => $message,
+            'error' => ['code' => $errorCode],
+            'timestamp' => date('c')
+        ]);
+        exit;
+    }
+
     public static function validationError(array $errors = [], string $message = 'Error de validación')
     {
         self::error($message, 422, $errors);
