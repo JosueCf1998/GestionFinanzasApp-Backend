@@ -16,6 +16,78 @@ class DashboardController extends BaseController
         $this->dashboardModel = new \DashboardModel();
     }
 
+    public function home($f3)
+    {
+        try {
+            $userId = $this->resolveAuthenticatedUserId($f3);
+            if ($userId === null) {
+                return;
+            }
+
+            $userName = $this->resolveUserName($userId) ?: 'Usuario';
+
+            $this->successResponse([
+                'user' => [
+                    'name' => $userName,
+                    'greeting' => 'Sigue fortaleciendo tu salud financiera.'
+                ],
+                'balance_card' => [
+                    'label' => 'Balance total',
+                    'amount' => 4580.00,
+                    'currency' => 'PEN',
+                    'currency_symbol' => 'S/',
+                    'account_name' => 'Cuenta principal',
+                    'account_masked' => '**** 4321'
+                ],
+                'shortcuts' => [
+                    ['key' => 'accounts', 'title' => 'Cuentas'],
+                    ['key' => 'budgets', 'title' => 'Presupuestos'],
+                    ['key' => 'transactions', 'title' => 'Transacciones'],
+                    ['key' => 'learn', 'title' => 'Aprender']
+                ],
+                'financial_overview' => [
+                    'monthly_savings' => [
+                        'label' => 'Ahorro del mes',
+                        'amount' => 620.00,
+                        'currency_symbol' => 'S/',
+                        'change_percent_vs_last_month' => 18
+                    ],
+                    'budget_usage' => [
+                        'label' => 'Presupuesto usado',
+                        'percentage' => 68,
+                        'used' => 1360.00,
+                        'total' => 2000.00,
+                        'currency_symbol' => 'S/'
+                    ],
+                    'monthly_flow' => [
+                        'label' => 'Flujo del mes',
+                        'amount' => 1240.00,
+                        'currency_symbol' => 'S/',
+                        'formula' => 'Entradas - Salidas'
+                    ]
+                ],
+                'featured_lesson' => [
+                    'badge' => 'Lección destacada',
+                    'title' => 'Regla 50/30/20',
+                    'description' => 'Aprende a distribuir tu ingreso de forma inteligente.',
+                    'progress_distribution' => [
+                        'needs' => 50,
+                        'wants' => 30,
+                        'savings' => 20
+                    ],
+                    'action_label' => 'Ver lección'
+                ],
+                'daily_tip' => [
+                    'title' => 'Pequeños hábitos, grandes resultados.',
+                    'description' => 'Revisa tus gastos hormiga. Ahorrar un poco hoy puede hacer una gran diferencia mañana.'
+                ]
+            ], 'Home obtenido correctamente');
+        } catch (\Throwable $e) {
+            error_log('DashboardController::home error: ' . $e->getMessage());
+            $this->errorResponse('No se pudo obtener la información del home', 500);
+        }
+    }
+
     public function index($f3)
     {
         try {
@@ -369,5 +441,20 @@ class DashboardController extends BaseController
         }
 
         return false;
+    }
+
+    private function resolveUserName(int $userId): ?string
+    {
+        $rows = \Base::instance()->get('DB')->exec(
+            'SELECT nombre FROM usuarios WHERE id = ? LIMIT 1',
+            [$userId]
+        );
+
+        if (!is_array($rows) || !isset($rows[0]['nombre'])) {
+            return null;
+        }
+
+        $name = trim((string)$rows[0]['nombre']);
+        return $name !== '' ? $name : null;
     }
 }

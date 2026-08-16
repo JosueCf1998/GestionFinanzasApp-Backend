@@ -1,0 +1,332 @@
+{
+    "info": {
+        "_postman_id": "ad6eeb09-ae38-4d17-b5d4-c3739efda7ff",
+        "name": "Learning",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "_exporter_id": "36127622"
+    },
+    "item": [
+        {
+            "name": "home",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer <TOKEN>",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "http://localhost/GestionFinanzasApp-Backend/learning/home",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "path": [
+                        "GestionFinanzasApp-Backend",
+                        "learning",
+                        "home"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "categories",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer <TOKEN>",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "http://localhost/GestionFinanzasApp-Backend/learning/categories",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "path": [
+                        "GestionFinanzasApp-Backend",
+                        "learning",
+                        "categories"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "courses",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer <TOKEN>",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "http://localhost/GestionFinanzasApp-Backend/learning/courses",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "path": [
+                        "GestionFinanzasApp-Backend",
+                        "learning",
+                        "courses"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "courses by category",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer <TOKEN>",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "http://localhost/GestionFinanzasApp-Backend/learning/courses?category_id=2",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "path": [
+                        "GestionFinanzasApp-Backend",
+                        "learning",
+                        "courses"
+                    ],
+                    "query": [
+                        {
+                            "key": "category_id",
+                            "value": "2"
+                        }
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "courses by level",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer <TOKEN>",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "http://localhost/GestionFinanzasApp-Backend/learning/courses?level=BASICO",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "path": [
+                        "GestionFinanzasApp-Backend",
+                        "learning",
+                        "courses"
+                    ],
+                    "query": [
+                        {
+                            "key": "level",
+                            "value": "BASICO"
+                        }
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "course detail",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer <TOKEN>",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "http://localhost/GestionFinanzasApp-Backend/learning/courses/1",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "path": [
+                        "GestionFinanzasApp-Backend",
+                        "learning",
+                        "courses",
+                        "1"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "lesson detail",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer <TOKEN>",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "http://localhost/GestionFinanzasApp-Backend/learning/lessons/1",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "path": [
+                        "GestionFinanzasApp-Backend",
+                        "learning",
+                        "lessons",
+                        "1"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "start lesson",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer <TOKEN>",
+                        "type": "text"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "http://localhost/GestionFinanzasApp-Backend/learning/lessons/1/start",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "path": [
+                        "GestionFinanzasApp-Backend",
+                        "learning",
+                        "lessons",
+                        "1",
+                        "start"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "complete lesson",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer <TOKEN>",
+                        "type": "text"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "http://localhost/GestionFinanzasApp-Backend/learning/lessons/1/complete",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "path": [
+                        "GestionFinanzasApp-Backend",
+                        "learning",
+                        "lessons",
+                        "1",
+                        "complete"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "recommendations",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer <TOKEN>",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "http://localhost/GestionFinanzasApp-Backend/learning/recommendations",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "path": [
+                        "GestionFinanzasApp-Backend",
+                        "learning",
+                        "recommendations"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "stats",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer <TOKEN>",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "http://localhost/GestionFinanzasApp-Backend/learning/stats",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "path": [
+                        "GestionFinanzasApp-Backend",
+                        "learning",
+                        "stats"
+                    ]
+                }
+            },
+            "response": []
+        }
+    ]
+}
