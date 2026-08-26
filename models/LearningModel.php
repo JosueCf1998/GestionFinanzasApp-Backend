@@ -7,6 +7,9 @@ class LearningModel
     /** @var \DB\SQL */
     private $db;
 
+    /** @var array<int, array<string, mixed>>|null */
+    private $learningStatuses = null;
+
     public function __construct()
     {
         $this->db = \Base::instance()->get('DB');
@@ -14,38 +17,25 @@ class LearningModel
 
     public function calculateLearningLevel(int $xp): array
     {
-        if ($xp >= 2500) {
-            return [
-                'level' => 'Experto',
-                'level_code' => 'EXPERTO',
-                'current_xp' => $xp,
-                'next_level_xp' => null
-            ];
-        }
+        $statuses = $this->getLearningStatuses();
+        $selected = $statuses[count($statuses) - 1];
+        $nextLevelXp = null;
 
-        if ($xp >= 1000) {
-            return [
-                'level' => 'Avanzado',
-                'level_code' => 'AVANZADO',
-                'current_xp' => $xp,
-                'next_level_xp' => 2500
-            ];
-        }
+        foreach ($statuses as $status) {
+            $limit = $status['xp_limit'];
 
-        if ($xp >= 300) {
-            return [
-                'level' => 'Intermedio',
-                'level_code' => 'INTERMEDIO',
-                'current_xp' => $xp,
-                'next_level_xp' => 1000
-            ];
+            if ($limit === null || $xp <= (int)$limit) {
+                $selected = $status;
+                $nextLevelXp = $limit === null ? null : ((int)$limit + 1);
+                break;
+            }
         }
 
         return [
-            'level' => 'Principiante',
-            'level_code' => 'PRINCIPIANTE',
+            'level' => $selected['name'],
+            'level_code' => $selected['code'],
             'current_xp' => $xp,
-            'next_level_xp' => 300
+            'next_level_xp' => $nextLevelXp
         ];
     }
 
@@ -59,6 +49,7 @@ class LearningModel
         foreach ($courseRows as $courseRow) {
             $learningPaths[] = [
                 'id' => $courseRow['id'],
+                'id_categories' => (int)($courseRow['category_id'] ?? 0),
                 'title' => $courseRow['title'],
                 'description' => $courseRow['description'],
                 'lessons' => $courseRow['total_lessons'],
@@ -75,8 +66,7 @@ class LearningModel
             ],
             'featured_course' => $featuredCourse,
             'categories' => $this->getCategories(),
-            'learning_paths' => $learningPaths,
-            'recommended_lessons' => $this->getRecommendations($userId)
+            'learning_paths' => $learningPaths
         ];
     }
 
@@ -87,7 +77,6 @@ class LearningModel
             SELECT
                 id,
                 name,
-                description,
                 icon
             FROM learning_categories
             WHERE status = 1
@@ -116,6 +105,7 @@ class LearningModel
         $sql = "
             SELECT
                 c.id,
+                c.category_id,
                 c.title,
                 c.description,
                 c.image AS image_url,
@@ -158,6 +148,7 @@ class LearningModel
 
         foreach ($rows as &$row) {
             $row['id'] = (int)$row['id'];
+            $row['category_id'] = (int)($row['category_id'] ?? 0);
             $row['estimated_minutes'] = (int)$row['estimated_minutes'];
             $row['total_lessons'] = (int)$row['total_lessons'];
             $row['completed_lessons'] = (int)$row['completed_lessons'];
@@ -1057,7 +1048,7 @@ class LearningModel
                 current_level,
                 current_streak,
                 longest_streak,
-                last_activity_date,
+                last_activity_at,
                 completed_lessons,
                 completed_courses
             ) VALUES (?, 0, ?, 0, 0, NULL, 0, 0)
@@ -1192,18 +1183,30 @@ class LearningModel
     private function getLockedStatsRow(int $userId): array
     {
         $rows = $this->db->exec(
-            'SELECT total_xp, current_level, current_streak, longest_streak, last_activity_date, completed_lessons, completed_courses FROM user_learning_stats WHERE user_id = ? FOR UPDATE',
+            'SELECT total_xp, current_level, current_streak, longest_streak, last_activity_at, last_activity_date, completed_lessons, completed_courses FROM user_learning_stats WHERE user_id = ? FOR UPDATE',
             [$userId]
         );
 
-        return is_array($rows) && isset($rows[0]) ? $rows[0] : [
+        $row = is_array($rows) && isset($rows[0]) ? $rows[0] : [
             'total_xp' => 0,
             'current_level' => 'PRINCIPIANTE',
             'current_streak' => 0,
             'longest_streak' => 0,
+            'last_activity_at' => null,
             'last_activity_date' => null,
             'completed_lessons' => 0,
             'completed_courses' => 0
+        ];
+
+        return [
+            'total_xp' => (int)$row['total_xp'],
+            'current_level' => $row['current_level'] ?? 'PRINCIPIANTE',
+            'current_streak' => (int)$row['current_streak'],
+            'longest_streak' => (int)$row['longest_streak'],
+            'last_activity_at' => $row['last_activity_at'] ?? $row['last_activity_date'] ?? null,
+            'last_activity_date' => $row['last_activity_date'] ?? null,
+            'completed_lessons' => (int)$row['completed_lessons'],
+            'completed_courses' => (int)$row['completed_courses']
         ];
     }
 
@@ -1211,7 +1214,7 @@ class LearningModel
     {
         $totalXp = (int)$stats['total_xp'] + $xpEarned;
         $streakData = $this->calculateNextStreak(
-            $stats['last_activity_date'],
+            $stats['last_activity_at'] ?? $stats['last_activity_date'] ?? null,
             (int)$stats['current_streak'],
             (int)$stats['longest_streak']
         );
@@ -1226,6 +1229,7 @@ class LearningModel
                 current_level = ?,
                 current_streak = ?,
                 longest_streak = ?,
+                last_activity_at = NOW(),
                 last_activity_date = CURDATE(),
                 completed_lessons = ?
             WHERE user_id = ?
@@ -1249,19 +1253,27 @@ class LearningModel
         ];
     }
 
-    private function calculateNextStreak($lastActivityDate, int $currentStreak, int $longestStreak): array
+    private function calculateNextStreak($lastActivityAt, int $currentStreak, int $longestStreak): array
     {
-        $today = new \DateTimeImmutable('today');
+        $now = new \DateTimeImmutable('now');
+        $twentyFourHours = 24 * 60 * 60;
 
-        if (empty($lastActivityDate)) {
+        if (empty($lastActivityAt)) {
             $currentStreak = 1;
         } else {
-            $last = new \DateTimeImmutable($lastActivityDate);
-            $diffDays = (int)$last->diff($today)->format('%r%a');
+            $last = $lastActivityAt instanceof \DateTimeImmutable
+                ? $lastActivityAt
+                : new \DateTimeImmutable((string)$lastActivityAt);
 
-            if ($diffDays === 0) {
+            $diffSeconds = (int)$now->getTimestamp() - (int)$last->getTimestamp();
+
+            if ($diffSeconds < 0) {
+                $diffSeconds = 0;
+            }
+
+            if ($diffSeconds < $twentyFourHours) {
                 $currentStreak = max(1, $currentStreak);
-            } elseif ($diffDays === 1) {
+            } elseif ($diffSeconds < ($twentyFourHours * 2)) {
                 $currentStreak = max(1, $currentStreak) + 1;
             } else {
                 $currentStreak = 1;
@@ -1325,5 +1337,49 @@ class LearningModel
         }
 
         return $items;
+    }
+
+    private function getLearningStatuses(): array
+    {
+        if ($this->learningStatuses !== null) {
+            return $this->learningStatuses;
+        }
+
+        try {
+            $rows = $this->db->exec(
+                "
+                SELECT
+                    code,
+                    name,
+                    xp_limit
+                FROM learning_experience_statuses
+                WHERE status = 1
+                ORDER BY (xp_limit IS NULL) ASC, xp_limit ASC, id ASC
+                "
+            );
+
+            if (is_array($rows) && !empty($rows)) {
+                $this->learningStatuses = array_map(function ($row) {
+                    return [
+                        'code' => strtoupper((string)$row['code']),
+                        'name' => (string)$row['name'],
+                        'xp_limit' => $row['xp_limit'] === null ? null : (int)$row['xp_limit']
+                    ];
+                }, $rows);
+
+                return $this->learningStatuses;
+            }
+        } catch (\Throwable $e) {
+            // Si la tabla aun no existe, usamos umbrales por defecto para mantener compatibilidad.
+        }
+
+        $this->learningStatuses = [
+            ['code' => 'PRINCIPIANTE', 'name' => 'Principiante', 'xp_limit' => 299],
+            ['code' => 'INTERMEDIO', 'name' => 'Intermedio', 'xp_limit' => 999],
+            ['code' => 'AVANZADO', 'name' => 'Avanzado', 'xp_limit' => 2499],
+            ['code' => 'EXPERTO', 'name' => 'Experto', 'xp_limit' => null]
+        ];
+
+        return $this->learningStatuses;
     }
 }

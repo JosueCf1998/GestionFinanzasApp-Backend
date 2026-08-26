@@ -34,33 +34,6 @@
       "response": []
     },
     {
-      "name": "categories",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjcwLCJlbWFpbCI6Impvc3VlQGdtYWlsLmNvbSJ9LCJpYXQiOjE3ODQ2MTIwMTcsImV4cCI6MTg4NDYxMjAxN30.Ip4EJRMzoppEE-Cvuv8aL7mIdYuz_c1uAlMvUy7GqHo",
-            "type": "text"
-          }
-        ],
-        "url": {
-          "raw": "https://api.gfinvia.com/learning/categories",
-          "protocol": "https",
-          "host": [
-            "api",
-            "gfinvia",
-            "com"
-          ],
-          "path": [
-            "learning",
-            "categories"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
       "name": "courses by category",
       "request": {
         "method": "POST",
