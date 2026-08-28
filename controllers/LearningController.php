@@ -247,44 +247,13 @@ class LearningController extends BaseController
 
     public function startLesson($f3)
     {
-        try {
-            $userId = $this->resolveAuthenticatedUserId($f3);
-            if ($userId === null) {
-                return;
-            }
-
-            $data = $this->getJsonBody();
-            if ($data === null) {
-                return;
-            }
-
-            $lessonId = $data['lesson_id'] ?? null;
-
-            if (!$this->isPositiveIntegerValue($lessonId)) {
-                $this->errorResponse(
-                    'Parámetros inválidos',
-                    400,
-                    ['lesson_id' => 'Debe ser un entero positivo']
-                );
-                return;
-            }
-
-            $lessonId = (int)$lessonId;
-
-            $result = $this->learningModel->startLesson($userId, $lessonId);
-            if ($result === null) {
-                $this->errorResponse('Lección no encontrada', 404);
-                return;
-            }
-
-            $this->successResponse($result, 'Lección iniciada');
-        } catch (\Throwable $e) {
-            error_log('LearningController::startLesson error: ' . $e->getMessage());
-            $this->errorResponse('No se pudo iniciar la lección', 500);
-        }
+        $this->errorResponse(
+            'Este endpoint fue deshabilitado. Al consultar el detalle de la lección, esta se inicia automáticamente.',
+            410
+        );
     }
 
-    public function completeLesson($f3)
+    public function completeCourse($f3)
     {
         try {
             $userId = $this->resolveAuthenticatedUserId($f3);
@@ -297,42 +266,53 @@ class LearningController extends BaseController
                 return;
             }
 
-            $lessonId = $data['lesson_id'] ?? null;
+            $courseId = $data['course_id'] ?? null;
 
-            if (!$this->isPositiveIntegerValue($lessonId)) {
+            if (!$this->isPositiveIntegerValue($courseId)) {
                 $this->errorResponse(
                     'Parámetros inválidos',
                     400,
-                    ['lesson_id' => 'Debe ser un entero positivo']
+                    ['course_id' => 'Debe ser un entero positivo']
                 );
                 return;
             }
 
-            $lessonId = (int)$lessonId;
+            $courseId = (int)$courseId;
 
-            $result = $this->learningModel->completeLesson($userId, $lessonId);
+            $result = $this->learningModel->completeCourse($userId, $courseId);
             if ($result === null) {
-                $this->errorResponse('Lección no encontrada', 404);
+                $this->errorResponse('Curso no encontrado', 404);
+                return;
+            }
+
+            if (($result['completion_blocked'] ?? null) === 'ALL_LESSONS_NOT_COMPLETED') {
+                $this->errorResponse(
+                    'Debes completar todas las lecciones del curso antes de finalizarlo',
+                    409,
+                    $result
+                );
                 return;
             }
 
             if (($result['completion_blocked'] ?? null) === 'QUIZ_NOT_PASSED') {
                 $this->errorResponse(
-                    'Debes aprobar el quiz antes de completar la lección',
+                    'Debes aprobar el quiz del curso antes de completarlo',
                     409,
-                    [
-                        'lesson_id' => $lessonId,
-                        'passing_score' => $result['passing_score'] ?? 70
-                    ]
+                    $result
                 );
                 return;
             }
 
-            $this->successResponse($result, 'Lección completada');
+            $this->successResponse($result, 'Curso completado con éxito');
         } catch (\Throwable $e) {
-            error_log('LearningController::completeLesson error: ' . $e->getMessage());
-            $this->errorResponse('No se pudo completar la lección', 500);
+            error_log('LearningController::completeCourse error: ' . $e->getMessage());
+            $this->errorResponse('No se pudo completar el curso', 500);
         }
+    }
+
+    public function completeLesson($f3)
+    {
+        $this->completeCourse($f3);
     }
 
 
@@ -340,7 +320,7 @@ class LearningController extends BaseController
      * POST /learning/quiz/detail
      * JSON:
      * {
-     *   "lesson_id": 1
+    *   "course_id": 1
      * }
      */
     public function quizDetail($f3)
@@ -356,24 +336,24 @@ class LearningController extends BaseController
                 return;
             }
 
-            $lessonId = $data['lesson_id'] ?? null;
+            $courseId = $data['course_id'] ?? null;
 
-            if (!$this->isPositiveIntegerValue($lessonId)) {
+            if (!$this->isPositiveIntegerValue($courseId)) {
                 $this->errorResponse(
                     'Parámetros inválidos',
                     400,
-                    ['lesson_id' => 'Debe ser un entero positivo']
+                    ['course_id' => 'Debe ser un entero positivo']
                 );
                 return;
             }
 
-            $quiz = $this->learningModel->getLessonQuiz(
+            $quiz = $this->learningModel->getCourseQuiz(
                 $userId,
-                (int)$lessonId
+                (int)$courseId
             );
 
             if ($quiz === null) {
-                $this->errorResponse('Lección no encontrada', 404);
+                $this->errorResponse('Curso no encontrado', 404);
                 return;
             }
 
@@ -381,7 +361,7 @@ class LearningController extends BaseController
                 $quiz,
                 !empty($quiz['has_quiz'])
                     ? 'Quiz obtenido correctamente'
-                    : 'La lección no tiene un quiz activo'
+                    : 'El curso no tiene un quiz activo'
             );
         } catch (\Throwable $e) {
             error_log('LearningController::quizDetail error: ' . $e->getMessage());
@@ -393,7 +373,7 @@ class LearningController extends BaseController
      * POST /learning/quiz/submit
      * JSON:
      * {
-     *   "lesson_id": 1,
+    *   "course_id": 1,
      *   "answers": [
      *      {"quiz_id": 1, "option_id": 2},
      *      {"quiz_id": 2, "option_id": 5}
@@ -413,13 +393,13 @@ class LearningController extends BaseController
                 return;
             }
 
-            $lessonId = $data['lesson_id'] ?? null;
+            $courseId = $data['course_id'] ?? null;
             $answers = $data['answers'] ?? null;
 
             $errors = [];
 
-            if (!$this->isPositiveIntegerValue($lessonId)) {
-                $errors['lesson_id'] = 'Debe ser un entero positivo';
+            if (!$this->isPositiveIntegerValue($courseId)) {
+                $errors['course_id'] = 'Debe ser un entero positivo';
             }
 
             if (!is_array($answers) || empty($answers)) {
@@ -431,14 +411,14 @@ class LearningController extends BaseController
                 return;
             }
 
-            $result = $this->learningModel->submitLessonQuiz(
+            $result = $this->learningModel->submitCourseQuiz(
                 $userId,
-                (int)$lessonId,
+                (int)$courseId,
                 $answers
             );
 
             if ($result === null) {
-                $this->errorResponse('Lección no encontrada', 404);
+                $this->errorResponse('Curso no encontrado', 404);
                 return;
             }
 
@@ -496,6 +476,24 @@ class LearningController extends BaseController
         } catch (\Throwable $e) {
             error_log('LearningController::stats error: ' . $e->getMessage());
             $this->errorResponse('No se pudieron obtener las estadísticas de aprendizaje', 500);
+        }
+    }
+
+    public function faq($f3)
+    {
+        try {
+            $userId = $this->resolveAuthenticatedUserId($f3);
+            if ($userId === null) {
+                return;
+            }
+
+            $this->successResponse(
+                $this->learningModel->getShortFaq(),
+                'Preguntas frecuentes obtenidas correctamente'
+            );
+        } catch (\Throwable $e) {
+            error_log('LearningController::faq error: ' . $e->getMessage());
+            $this->errorResponse('No se pudieron obtener las preguntas frecuentes', 500);
         }
     }
 

@@ -1,6 +1,6 @@
 {
   "info": {
-    "_postman_id": "c313fff4-7504-4fa3-8750-237345bfc4d1",
+    "_postman_id": "0d13aaae-58c9-49f3-848f-05dd62a428ee",
     "name": "Learning API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "36127622"
@@ -172,79 +172,7 @@
           }
         },
         "url": {
-          "raw": "https://api.gfinvia.com/lessons/detail",
-          "protocol": "https",
-          "host": [
-            "api",
-            "gfinvia",
-            "com"
-          ],
-          "path": [
-            "lessons",
-            "detail"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "start lesson",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjcwLCJlbWFpbCI6Impvc3VlQGdtYWlsLmNvbSJ9LCJpYXQiOjE3ODQ2MTIwMTcsImV4cCI6MTg4NDYxMjAxN30.Ip4EJRMzoppEE-Cvuv8aL7mIdYuz_c1uAlMvUy7GqHo",
-            "type": "text"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n    \"lesson_id\": 1\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "https://api.gfinvia.com/lessons/start",
-          "protocol": "https",
-          "host": [
-            "api",
-            "gfinvia",
-            "com"
-          ],
-          "path": [
-            "lessons",
-            "start"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "complete lesson",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjcwLCJlbWFpbCI6Impvc3VlQGdtYWlsLmNvbSJ9LCJpYXQiOjE3ODQ2MTIwMTcsImV4cCI6MTg4NDYxMjAxN30.Ip4EJRMzoppEE-Cvuv8aL7mIdYuz_c1uAlMvUy7GqHo",
-            "type": "text"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n    \"lesson_id\": 1\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "https://api.gfinvia.com/learning/lessons/complete",
+          "raw": "https://api.gfinvia.com/learning/lessons/detail",
           "protocol": "https",
           "host": [
             "api",
@@ -254,6 +182,43 @@
           "path": [
             "learning",
             "lessons",
+            "detail"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "complete course",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjcwLCJlbWFpbCI6Impvc3VlQGdtYWlsLmNvbSJ9LCJpYXQiOjE3ODQ2MTIwMTcsImV4cCI6MTg4NDYxMjAxN30.Ip4EJRMzoppEE-Cvuv8aL7mIdYuz_c1uAlMvUy7GqHo",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"course_id\": 1\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.gfinvia.com/learning/courses/complete",
+          "protocol": "https",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "learning",
+            "courses",
             "complete"
           ]
         }
@@ -261,7 +226,7 @@
       "response": []
     },
     {
-      "name": "recommendations",
+      "name": "question_ansered",
       "request": {
         "method": "GET",
         "header": [
@@ -315,7 +280,7 @@
       "response": []
     },
     {
-      "name": "quizz detail",
+      "name": "quiz detail",
       "request": {
         "method": "POST",
         "header": [
@@ -327,7 +292,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"lesson_id\":2 \r\n}",
+          "raw": "{\r\n  \"course_id\": 1\r\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -352,7 +317,7 @@
       "response": []
     },
     {
-      "name": "quizz Submit",
+      "name": "quiz submit",
       "request": {
         "method": "POST",
         "header": [
@@ -364,7 +329,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n    \"lesson_id\": 1,\r\n    \"answers\": [\r\n        {\r\n            \"quiz_id\": 1,\r\n            \"option_id\": 2\r\n        },\r\n        {\r\n            \"quiz_id\": 2,\r\n            \"option_id\": 5\r\n        },\r\n        {\r\n            \"quiz_id\": 3,\r\n            \"option_id\": 9\r\n        }\r\n    ]\r\n}",
+          "raw": "{\r\n    \"course_id\": 1,\r\n    \"answers\": [\r\n        {\r\n            \"quiz_id\": 1,\r\n            \"option_id\": 2\r\n        },\r\n        {\r\n            \"quiz_id\": 2,\r\n            \"option_id\": 5\r\n        },\r\n        {\r\n            \"quiz_id\": 3,\r\n            \"option_id\": 9\r\n        }\r\n    ]\r\n}",
           "options": {
             "raw": {
               "language": "json"

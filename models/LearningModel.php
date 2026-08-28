@@ -2,7 +2,9 @@
 
 class LearningModel
 {
-    private const QUIZ_PASSING_SCORE = 70.00;
+    private const QUIZ_PASSING_SCORE = 50.00;
+    private const QUIZ_EXPECTED_TOTAL_QUESTIONS = 10;
+    private const QUIZ_MIN_CORRECT_ANSWERS = 5;
 
     /** @var \DB\SQL */
     private $db;
@@ -52,6 +54,7 @@ class LearningModel
                 'id_categories' => (int)($courseRow['category_id'] ?? 0),
                 'title' => $courseRow['title'],
                 'description' => $courseRow['description'],
+                'level' => $courseRow['level'] ?? null,
                 'lessons' => $courseRow['total_lessons'],
                 'progress' => $courseRow['progress_percent']
             ];
@@ -221,6 +224,14 @@ class LearningModel
             return null;
         }
 
+        // Al consultar el detalle se inicia la leccion automaticamente.
+        $this->startLesson($userId, $lessonId);
+
+        $lesson = $this->getLessonRow($lessonId, $userId);
+        if ($lesson === null) {
+            return null;
+        }
+
         $contents = $this->db->exec(
             "
             SELECT
@@ -265,7 +276,7 @@ class LearningModel
             'level' => $lesson['level'],
             'status' => $lesson['lesson_status'],
             'contents' => $contentItems,
-            'quiz' => $this->getLessonQuizStatus($userId, $lessonId),
+            'quiz' => $this->getCourseQuizStatus($userId, (int)$lesson['course_id']),
             'previous_lesson' => $previousLesson,
             'next_lesson' => $nextLesson
         ];
@@ -324,7 +335,7 @@ class LearningModel
         ];
     }
 
-    public function completeLesson(int $userId, int $lessonId): ?array
+    public function completeLesson(int $userId, int $lessonId, bool $skipIfCourseCompleted = true): ?array
     {
         $lesson = $this->getLessonRow($lessonId, $userId);
         if ($lesson === null) {
@@ -334,11 +345,11 @@ class LearningModel
         $courseId = (int)$lesson['course_id'];
         $totalLessons = (int)$lesson['total_lessons'];
 
-        if ($this->lessonHasQuiz($lessonId) && !$this->hasPassedLessonQuiz($userId, $lessonId)) {
+        if ($skipIfCourseCompleted && $this->isCourseCompleted($userId, $courseId)) {
             return [
-                'completion_blocked' => 'QUIZ_NOT_PASSED',
                 'lesson_id' => $lessonId,
-                'passing_score' => self::QUIZ_PASSING_SCORE
+                'status' => 'COMPLETED',
+                'course_already_completed' => true
             ];
         }
 
@@ -427,11 +438,90 @@ class LearningModel
         }
     }
 
-
-    public function getLessonQuiz(int $userId, int $lessonId): ?array
+    public function completeCourse(int $userId, int $courseId): ?array
     {
-        $lesson = $this->getLessonRow($lessonId, $userId);
-        if ($lesson === null) {
+        $course = $this->getCourseRow($courseId, $userId);
+        if ($course === null) {
+            return null;
+        }
+
+        $totalLessons = (int)$course['total_lessons'];
+
+        $this->db->begin();
+
+        try {
+            $this->ensureUserStatsExists($userId, true);
+            $this->ensureCourseProgressExists($userId, $courseId, $totalLessons, true);
+
+            $courseProgress = $this->refreshCourseProgress($userId, $courseId, $totalLessons, true);
+
+            if ((int)$courseProgress['completed'] < (int)$courseProgress['total']) {
+                $pendingLessons = (int)$courseProgress['total'] - (int)$courseProgress['completed'];
+                $this->db->rollback();
+
+                return [
+                    'completion_blocked' => 'ALL_LESSONS_NOT_COMPLETED',
+                    'course_id' => $courseId,
+                    'pending_lessons' => $pendingLessons,
+                    'course_progress' => $courseProgress
+                ];
+            }
+
+            if ($this->courseHasQuiz($courseId) && !$this->hasPassedCourseQuiz($userId, $courseId)) {
+                $this->db->rollback();
+
+                return [
+                    'completion_blocked' => 'QUIZ_NOT_PASSED',
+                    'course_id' => $courseId,
+                    'passing_score' => self::QUIZ_PASSING_SCORE,
+                    'required_correct_answers' => self::QUIZ_MIN_CORRECT_ANSWERS,
+                    'total_questions' => self::QUIZ_EXPECTED_TOTAL_QUESTIONS
+                ];
+            }
+
+            $this->db->exec(
+                '
+                UPDATE user_course_progress
+                SET
+                    completed_lessons = total_lessons,
+                    progress_percent = 100,
+                    status = ?,
+                    started_at = COALESCE(started_at, NOW()),
+                    completed_at = COALESCE(completed_at, NOW())
+                WHERE user_id = ?
+                    AND course_id = ?
+                ',
+                ['COMPLETED', $userId, $courseId]
+            );
+
+            $this->db->commit();
+
+            $stats = $this->getUserStatsSummary($userId);
+
+            return [
+                'course_id' => $courseId,
+                'completed' => true,
+                'course_progress' => [
+                    'completed' => $totalLessons,
+                    'total' => $totalLessons,
+                    'percentage' => 100.0
+                ],
+                'quiz' => $this->getCourseQuizStatus($userId, $courseId),
+                'total_xp' => (int)$stats['total_xp'],
+                'level' => $stats['level'],
+                'streak' => (int)$stats['current_streak']
+            ];
+        } catch (\Throwable $e) {
+            $this->db->rollback();
+            throw $e;
+        }
+    }
+
+
+    public function getCourseQuiz(int $userId, int $courseId): ?array
+    {
+        $course = $this->getCourseRow($courseId, $userId);
+        if ($course === null) {
             return null;
         }
 
@@ -442,17 +532,19 @@ class LearningModel
                 q.question,
                 q.sort_order
             FROM quizzes q
-            WHERE q.lesson_id = ?
+            WHERE q.course_id = ?
                 AND q.status = 1
             ORDER BY q.sort_order ASC, q.id ASC
             ",
-            [$lessonId]
+            [$courseId]
         );
 
         if (!is_array($questionRows) || empty($questionRows)) {
             return [
-                'lesson_id' => $lessonId,
+                'course_id' => $courseId,
                 'passing_score' => self::QUIZ_PASSING_SCORE,
+                'required_correct_answers' => self::QUIZ_MIN_CORRECT_ANSWERS,
+                'total_questions' => self::QUIZ_EXPECTED_TOTAL_QUESTIONS,
                 'passed' => false,
                 'has_quiz' => false,
                 'questions' => []
@@ -496,18 +588,20 @@ class LearningModel
         }
 
         return [
-            'lesson_id' => $lessonId,
+            'course_id' => $courseId,
             'passing_score' => self::QUIZ_PASSING_SCORE,
-            'passed' => $this->hasPassedLessonQuiz($userId, $lessonId),
+            'required_correct_answers' => self::QUIZ_MIN_CORRECT_ANSWERS,
+            'total_questions' => self::QUIZ_EXPECTED_TOTAL_QUESTIONS,
+            'passed' => $this->hasPassedCourseQuiz($userId, $courseId),
             'has_quiz' => true,
             'questions' => $questions
         ];
     }
 
-    public function submitLessonQuiz(int $userId, int $lessonId, array $answers): ?array
+    public function submitCourseQuiz(int $userId, int $courseId, array $answers): ?array
     {
-        $lesson = $this->getLessonRow($lessonId, $userId);
-        if ($lesson === null) {
+        $course = $this->getCourseRow($courseId, $userId);
+        if ($course === null) {
             return null;
         }
 
@@ -518,17 +612,26 @@ class LearningModel
                 q.question,
                 q.explanation
             FROM quizzes q
-            WHERE q.lesson_id = ?
+            WHERE q.course_id = ?
                 AND q.status = 1
             ORDER BY q.sort_order ASC, q.id ASC
             ",
-            [$lessonId]
+            [$courseId]
         );
 
         if (!is_array($questionRows) || empty($questionRows)) {
             return [
-                'validation_error' => 'LESSON_WITHOUT_QUIZ',
-                'message' => 'La lección no tiene un quiz activo'
+                'validation_error' => 'COURSE_WITHOUT_QUIZ',
+                'message' => 'El curso no tiene un quiz activo'
+            ];
+        }
+
+        if (count($questionRows) !== self::QUIZ_EXPECTED_TOTAL_QUESTIONS) {
+            return [
+                'validation_error' => 'COURSE_QUIZ_INVALID_CONFIG',
+                'message' => 'El quiz del curso debe tener exactamente 10 preguntas activas',
+                'total_questions' => count($questionRows),
+                'required_total_questions' => self::QUIZ_EXPECTED_TOTAL_QUESTIONS
             ];
         }
 
@@ -561,8 +664,8 @@ class LearningModel
 
             if (!isset($questionsById[$quizId])) {
                 return [
-                    'validation_error' => 'QUESTION_NOT_IN_LESSON',
-                    'message' => 'Una de las preguntas no pertenece a esta lección'
+                    'validation_error' => 'QUESTION_NOT_IN_COURSE',
+                    'message' => 'Una de las preguntas no pertenece a este curso'
                 ];
             }
 
@@ -592,10 +695,10 @@ class LearningModel
                 '
                 SELECT COALESCE(MAX(attempt_number), 0) AS last_attempt
                 FROM user_quiz_attempts
-                WHERE user_id = ? AND lesson_id = ?
+                WHERE user_id = ? AND course_id = ?
                 FOR UPDATE
                 ',
-                [$userId, $lessonId]
+                [$userId, $courseId]
             );
 
             $attemptNumber = (int)($attemptRows[0]['last_attempt'] ?? 0) + 1;
@@ -668,13 +771,13 @@ class LearningModel
             }
 
             $score = round(($correctAnswers / $totalQuestions) * 100, 2);
-            $passed = $score >= self::QUIZ_PASSING_SCORE;
+            $passed = $correctAnswers >= self::QUIZ_MIN_CORRECT_ANSWERS;
 
             $this->db->exec(
                 '
                 INSERT INTO user_quiz_attempts (
                     user_id,
-                    lesson_id,
+                    course_id,
                     attempt_number,
                     total_questions,
                     correct_answers,
@@ -685,7 +788,7 @@ class LearningModel
                 ',
                 [
                     $userId,
-                    $lessonId,
+                    $courseId,
                     $attemptNumber,
                     $totalQuestions,
                     $correctAnswers,
@@ -721,13 +824,14 @@ class LearningModel
             return [
                 'attempt_id' => $attemptId,
                 'attempt_number' => $attemptNumber,
-                'lesson_id' => $lessonId,
+                'course_id' => $courseId,
                 'total_questions' => $totalQuestions,
                 'correct_answers' => $correctAnswers,
                 'score' => $score,
                 'passing_score' => self::QUIZ_PASSING_SCORE,
+                'required_correct_answers' => self::QUIZ_MIN_CORRECT_ANSWERS,
                 'passed' => $passed,
-                'can_complete_lesson' => $passed,
+                'can_complete_course' => $passed,
                 'review' => $review
             ];
         } catch (\Throwable $e) {
@@ -736,13 +840,54 @@ class LearningModel
         }
     }
 
-    public function getLessonQuizStatus(int $userId, int $lessonId): array
+    public function getCourseQuizStatus(int $userId, int $courseId): array
     {
         return [
-            'available' => $this->lessonHasQuiz($lessonId),
-            'passed' => $this->hasPassedLessonQuiz($userId, $lessonId),
-            'passing_score' => self::QUIZ_PASSING_SCORE
+            'available' => $this->courseHasQuiz($courseId),
+            'passed' => $this->hasPassedCourseQuiz($userId, $courseId),
+            'passing_score' => self::QUIZ_PASSING_SCORE,
+            'required_correct_answers' => self::QUIZ_MIN_CORRECT_ANSWERS,
+            'total_questions' => self::QUIZ_EXPECTED_TOTAL_QUESTIONS
         ];
+    }
+
+    public function getShortFaq(): array
+    {
+        try {
+            $rows = $this->db->exec(
+                "
+                SELECT
+                    id,
+                    question,
+                    answer,
+                    category,
+                    sort_order
+                FROM learning_short_qna
+                WHERE status = 1
+                ORDER BY sort_order ASC, id ASC
+                "
+            );
+        } catch (\Throwable $e) {
+            error_log('LearningModel::getShortFaq error: ' . $e->getMessage());
+            return [];
+        }
+
+        if (!is_array($rows)) {
+            return [];
+        }
+
+        $items = [];
+        foreach ($rows as $row) {
+            $items[] = [
+                'id' => (int)($row['id'] ?? 0),
+                'question' => (string)($row['question'] ?? ''),
+                'answer' => (string)($row['answer'] ?? ''),
+                'category' => (string)($row['category'] ?? 'GENERAL'),
+                'sort_order' => (int)($row['sort_order'] ?? 0)
+            ];
+        }
+
+        return $items;
     }
 
     public function getRecommendations(int $userId): array
@@ -842,36 +987,56 @@ class LearningModel
     }
 
 
-    private function lessonHasQuiz(int $lessonId): bool
+    private function courseHasQuiz(int $courseId): bool
     {
         $rows = $this->db->exec(
             '
             SELECT COUNT(*) AS total
             FROM quizzes
-            WHERE lesson_id = ?
+            WHERE course_id = ?
                 AND status = 1
             ',
-            [$lessonId]
+            [$courseId]
         );
 
         return (int)($rows[0]['total'] ?? 0) > 0;
     }
 
-    private function hasPassedLessonQuiz(int $userId, int $lessonId): bool
+    private function hasPassedCourseQuiz(int $userId, int $courseId): bool
     {
         $rows = $this->db->exec(
             '
             SELECT id
             FROM user_quiz_attempts
             WHERE user_id = ?
-                AND lesson_id = ?
+                AND course_id = ?
                 AND passed = 1
             LIMIT 1
             ',
-            [$userId, $lessonId]
+            [$userId, $courseId]
         );
 
         return is_array($rows) && isset($rows[0]);
+    }
+
+    private function isCourseCompleted(int $userId, int $courseId): bool
+    {
+        $rows = $this->db->exec(
+            '
+            SELECT status
+            FROM user_course_progress
+            WHERE user_id = ?
+                AND course_id = ?
+            LIMIT 1
+            ',
+            [$userId, $courseId]
+        );
+
+        if (!is_array($rows) || !isset($rows[0])) {
+            return false;
+        }
+
+        return strtoupper((string)($rows[0]['status'] ?? '')) === 'COMPLETED';
     }
 
     private function isPositiveIntegerValue($value): bool
@@ -1147,7 +1312,7 @@ class LearningModel
             }
         }
 
-        $completedAt = $status === 'COMPLETED' ? 'NOW()' : 'NULL';
+        $completedAt = $status === 'COMPLETED' ? 'COALESCE(completed_at, NOW())' : 'NULL';
         $startedAt = $status === 'NOT_STARTED' ? 'NULL' : 'COALESCE(started_at, NOW())';
 
         $this->db->exec(

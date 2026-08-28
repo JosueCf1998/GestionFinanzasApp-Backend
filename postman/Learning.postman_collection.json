@@ -203,7 +203,7 @@
             "response": []
         },
         {
-            "name": "start lesson",
+            "name": "complete course",
             "request": {
                 "method": "POST",
                 "header": [
@@ -215,7 +215,7 @@
                 ],
                 "body": {
                     "mode": "raw",
-                    "raw": "{}",
+                    "raw": "{\n    \"course_id\": 1\n}",
                     "options": {
                         "raw": {
                             "language": "json"
@@ -223,7 +223,7 @@
                     }
                 },
                 "url": {
-                    "raw": "http://localhost/GestionFinanzasApp-Backend/learning/lessons/1/start",
+                    "raw": "http://localhost/GestionFinanzasApp-Backend/learning/courses/complete",
                     "protocol": "http",
                     "host": [
                         "localhost"
@@ -231,45 +231,7 @@
                     "path": [
                         "GestionFinanzasApp-Backend",
                         "learning",
-                        "lessons",
-                        "1",
-                        "start"
-                    ]
-                }
-            },
-            "response": []
-        },
-        {
-            "name": "complete lesson",
-            "request": {
-                "method": "POST",
-                "header": [
-                    {
-                        "key": "Authorization",
-                        "value": "Bearer <TOKEN>",
-                        "type": "text"
-                    }
-                ],
-                "body": {
-                    "mode": "raw",
-                    "raw": "{}",
-                    "options": {
-                        "raw": {
-                            "language": "json"
-                        }
-                    }
-                },
-                "url": {
-                    "raw": "http://localhost/GestionFinanzasApp-Backend/learning/lessons/1/complete",
-                    "protocol": "http",
-                    "host": [
-                        "localhost"
-                    ],
-                    "path": [
-                        "GestionFinanzasApp-Backend",
-                        "learning",
-                        "lessons",
-                        "1",
+                        "courses",
                         "complete"
                     ]
                 }
