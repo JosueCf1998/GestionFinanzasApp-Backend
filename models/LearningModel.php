@@ -4,7 +4,7 @@ class LearningModel
 {
     private const QUIZ_PASSING_SCORE = 50.00;
     private const QUIZ_EXPECTED_TOTAL_QUESTIONS = 10;
-    private const QUIZ_MIN_CORRECT_ANSWERS = 5;
+    private const QUIZ_QUESTIONS_PER_ATTEMPT = 5;
 
     /** @var \DB\SQL */
     private $db;
@@ -223,6 +223,8 @@ class LearningModel
         if ($lesson === null) {
             return null;
         }
+
+        $this->completePreviousLessonOnNavigation($userId, $lesson);
 
         // Al consultar el detalle se inicia la leccion automaticamente.
         $this->startLesson($userId, $lessonId);
@@ -474,8 +476,9 @@ class LearningModel
                     'completion_blocked' => 'QUIZ_NOT_PASSED',
                     'course_id' => $courseId,
                     'passing_score' => self::QUIZ_PASSING_SCORE,
-                    'required_correct_answers' => self::QUIZ_MIN_CORRECT_ANSWERS,
-                    'total_questions' => self::QUIZ_EXPECTED_TOTAL_QUESTIONS
+                    'required_correct_answers' => $this->getRequiredCorrectAnswers(self::QUIZ_QUESTIONS_PER_ATTEMPT),
+                    'total_questions' => self::QUIZ_QUESTIONS_PER_ATTEMPT,
+                    'question_bank_total' => self::QUIZ_EXPECTED_TOTAL_QUESTIONS
                 ];
             }
 
@@ -525,16 +528,39 @@ class LearningModel
             return null;
         }
 
+        $quizBankRows = $this->getCourseQuizBankRows($courseId);
+
+        if (empty($quizBankRows)) {
+            return [
+                'course_id' => $courseId,
+                'passing_score' => self::QUIZ_PASSING_SCORE,
+                'required_correct_answers' => $this->getRequiredCorrectAnswers(self::QUIZ_QUESTIONS_PER_ATTEMPT),
+                'total_questions' => self::QUIZ_QUESTIONS_PER_ATTEMPT,
+                'question_bank_total' => self::QUIZ_EXPECTED_TOTAL_QUESTIONS,
+                'passed' => false,
+                'has_quiz' => false,
+                'questions' => []
+            ];
+        }
+
         $questionRows = $this->db->exec(
             "
             SELECT
-                q.id,
-                q.question,
-                q.sort_order
-            FROM quizzes q
-            WHERE q.course_id = ?
-                AND q.status = 1
-            ORDER BY q.sort_order ASC, q.id ASC
+                b.id,
+                b.question
+            FROM (
+                SELECT
+                    q.id,
+                    q.question,
+                    q.sort_order
+                FROM quizzes q
+                WHERE q.course_id = ?
+                    AND q.status = 1
+                ORDER BY q.sort_order ASC, q.id ASC
+                LIMIT " . self::QUIZ_EXPECTED_TOTAL_QUESTIONS . "
+            ) b
+            ORDER BY RAND()
+            LIMIT " . self::QUIZ_QUESTIONS_PER_ATTEMPT . "
             ",
             [$courseId]
         );
@@ -543,8 +569,9 @@ class LearningModel
             return [
                 'course_id' => $courseId,
                 'passing_score' => self::QUIZ_PASSING_SCORE,
-                'required_correct_answers' => self::QUIZ_MIN_CORRECT_ANSWERS,
-                'total_questions' => self::QUIZ_EXPECTED_TOTAL_QUESTIONS,
+                'required_correct_answers' => $this->getRequiredCorrectAnswers(self::QUIZ_QUESTIONS_PER_ATTEMPT),
+                'total_questions' => self::QUIZ_QUESTIONS_PER_ATTEMPT,
+                'question_bank_total' => self::QUIZ_EXPECTED_TOTAL_QUESTIONS,
                 'passed' => false,
                 'has_quiz' => false,
                 'questions' => []
@@ -590,8 +617,9 @@ class LearningModel
         return [
             'course_id' => $courseId,
             'passing_score' => self::QUIZ_PASSING_SCORE,
-            'required_correct_answers' => self::QUIZ_MIN_CORRECT_ANSWERS,
-            'total_questions' => self::QUIZ_EXPECTED_TOTAL_QUESTIONS,
+            'required_correct_answers' => $this->getRequiredCorrectAnswers(self::QUIZ_QUESTIONS_PER_ATTEMPT),
+            'total_questions' => self::QUIZ_QUESTIONS_PER_ATTEMPT,
+            'question_bank_total' => self::QUIZ_EXPECTED_TOTAL_QUESTIONS,
             'passed' => $this->hasPassedCourseQuiz($userId, $courseId),
             'has_quiz' => true,
             'questions' => $questions
@@ -605,19 +633,7 @@ class LearningModel
             return null;
         }
 
-        $questionRows = $this->db->exec(
-            "
-            SELECT
-                q.id,
-                q.question,
-                q.explanation
-            FROM quizzes q
-            WHERE q.course_id = ?
-                AND q.status = 1
-            ORDER BY q.sort_order ASC, q.id ASC
-            ",
-            [$courseId]
-        );
+        $questionRows = $this->getCourseQuizBankRows($courseId);
 
         if (!is_array($questionRows) || empty($questionRows)) {
             return [
@@ -626,12 +642,13 @@ class LearningModel
             ];
         }
 
-        if (count($questionRows) !== self::QUIZ_EXPECTED_TOTAL_QUESTIONS) {
+        if (count($questionRows) < self::QUIZ_QUESTIONS_PER_ATTEMPT) {
             return [
                 'validation_error' => 'COURSE_QUIZ_INVALID_CONFIG',
-                'message' => 'El quiz del curso debe tener exactamente 10 preguntas activas',
+                'message' => 'El quiz del curso no tiene preguntas suficientes para evaluar',
                 'total_questions' => count($questionRows),
-                'required_total_questions' => self::QUIZ_EXPECTED_TOTAL_QUESTIONS
+                'required_total_questions' => self::QUIZ_QUESTIONS_PER_ATTEMPT,
+                'question_bank_total' => self::QUIZ_EXPECTED_TOTAL_QUESTIONS
             ];
         }
 
@@ -679,14 +696,17 @@ class LearningModel
             $normalizedAnswers[$quizId] = $optionId;
         }
 
-        if (count($normalizedAnswers) !== count($questionsById)) {
+        if (count($normalizedAnswers) !== self::QUIZ_QUESTIONS_PER_ATTEMPT) {
             return [
                 'validation_error' => 'INCOMPLETE_QUIZ',
-                'message' => 'Debes responder todas las preguntas del quiz',
+                'message' => 'Debes responder exactamente 5 preguntas del quiz',
                 'answered_questions' => count($normalizedAnswers),
-                'total_questions' => count($questionsById)
+                'total_questions' => self::QUIZ_QUESTIONS_PER_ATTEMPT,
+                'question_bank_total' => self::QUIZ_EXPECTED_TOTAL_QUESTIONS
             ];
         }
+
+        $normalizedAnswers = array_slice($normalizedAnswers, 0, self::QUIZ_QUESTIONS_PER_ATTEMPT, true);
 
         $this->db->begin();
 
@@ -702,12 +722,12 @@ class LearningModel
             );
 
             $attemptNumber = (int)($attemptRows[0]['last_attempt'] ?? 0) + 1;
-            $totalQuestions = count($questionsById);
+            $totalQuestions = count($normalizedAnswers);
             $correctAnswers = 0;
             $review = [];
 
-            foreach ($questionsById as $quizId => $questionRow) {
-                $selectedOptionId = $normalizedAnswers[$quizId];
+            foreach ($normalizedAnswers as $quizId => $selectedOptionId) {
+                $questionRow = $questionsById[$quizId];
 
                 $optionRows = $this->db->exec(
                     "
@@ -771,7 +791,8 @@ class LearningModel
             }
 
             $score = round(($correctAnswers / $totalQuestions) * 100, 2);
-            $passed = $correctAnswers >= self::QUIZ_MIN_CORRECT_ANSWERS;
+            $requiredCorrectAnswers = $this->getRequiredCorrectAnswers($totalQuestions);
+            $passed = $correctAnswers >= $requiredCorrectAnswers;
 
             $this->db->exec(
                 '
@@ -829,7 +850,8 @@ class LearningModel
                 'correct_answers' => $correctAnswers,
                 'score' => $score,
                 'passing_score' => self::QUIZ_PASSING_SCORE,
-                'required_correct_answers' => self::QUIZ_MIN_CORRECT_ANSWERS,
+                'required_correct_answers' => $requiredCorrectAnswers,
+                'question_bank_total' => self::QUIZ_EXPECTED_TOTAL_QUESTIONS,
                 'passed' => $passed,
                 'can_complete_course' => $passed,
                 'review' => $review
@@ -846,8 +868,9 @@ class LearningModel
             'available' => $this->courseHasQuiz($courseId),
             'passed' => $this->hasPassedCourseQuiz($userId, $courseId),
             'passing_score' => self::QUIZ_PASSING_SCORE,
-            'required_correct_answers' => self::QUIZ_MIN_CORRECT_ANSWERS,
-            'total_questions' => self::QUIZ_EXPECTED_TOTAL_QUESTIONS
+            'required_correct_answers' => $this->getRequiredCorrectAnswers(self::QUIZ_QUESTIONS_PER_ATTEMPT),
+            'total_questions' => self::QUIZ_QUESTIONS_PER_ATTEMPT,
+            'question_bank_total' => self::QUIZ_EXPECTED_TOTAL_QUESTIONS
         ];
     }
 
@@ -1484,6 +1507,75 @@ class LearningModel
             'id' => (int)$rows[0]['id'],
             'title' => $rows[0]['title']
         ];
+    }
+
+    private function completePreviousLessonOnNavigation(int $userId, array $currentLesson): void
+    {
+        $currentLessonNumber = (int)($currentLesson['lesson_number'] ?? 0);
+        if ($currentLessonNumber <= 1) {
+            return;
+        }
+
+        $previousLesson = $this->getAdjacentLesson(
+            (int)$currentLesson['course_id'],
+            $currentLessonNumber,
+            '<'
+        );
+
+        if ($previousLesson === null) {
+            return;
+        }
+
+        $previousRows = $this->db->exec(
+            'SELECT status FROM user_lesson_progress WHERE user_id = ? AND lesson_id = ? LIMIT 1',
+            [$userId, (int)$previousLesson['id']]
+        );
+
+        if (!is_array($previousRows) || !isset($previousRows[0])) {
+            return;
+        }
+
+        if (($previousRows[0]['status'] ?? '') !== 'IN_PROGRESS') {
+            return;
+        }
+
+        $this->completeLesson($userId, (int)$previousLesson['id']);
+    }
+
+    /**
+     * Devuelve el banco canónico del quiz del curso (máximo 10 preguntas activas).
+     * Si hay más activas en BD, se consideran solo las primeras por orden configurado.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function getCourseQuizBankRows(int $courseId): array
+    {
+        $rows = $this->db->exec(
+            "
+            SELECT
+                q.id,
+                q.question,
+                q.explanation,
+                q.sort_order
+            FROM quizzes q
+            WHERE q.course_id = ?
+                AND q.status = 1
+            ORDER BY q.sort_order ASC, q.id ASC
+            LIMIT " . self::QUIZ_EXPECTED_TOTAL_QUESTIONS . "
+            ",
+            [$courseId]
+        );
+
+        return is_array($rows) ? $rows : [];
+    }
+
+    private function getRequiredCorrectAnswers(int $totalQuestions): int
+    {
+        if ($totalQuestions <= 0) {
+            return 0;
+        }
+
+        return (int)ceil(($totalQuestions * self::QUIZ_PASSING_SCORE) / 100);
     }
 
     private function formatRecommendedLessons(array $rows): array

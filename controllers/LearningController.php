@@ -312,7 +312,39 @@ class LearningController extends BaseController
 
     public function completeLesson($f3)
     {
-        $this->completeCourse($f3);
+        try {
+            $userId = $this->resolveAuthenticatedUserId($f3);
+            if ($userId === null) {
+                return;
+            }
+
+            $data = $this->getJsonBody();
+            if ($data === null) {
+                return;
+            }
+
+            $lessonId = $data['lesson_id'] ?? null;
+
+            if (!$this->isPositiveIntegerValue($lessonId)) {
+                $this->errorResponse(
+                    'Parámetros inválidos',
+                    400,
+                    ['lesson_id' => 'Debe ser un entero positivo']
+                );
+                return;
+            }
+
+            $result = $this->learningModel->completeLesson($userId, (int)$lessonId);
+            if ($result === null) {
+                $this->errorResponse('Lección no encontrada', 404);
+                return;
+            }
+
+            $this->successResponse($result, 'Lección completada con éxito');
+        } catch (\Throwable $e) {
+            error_log('LearningController::completeLesson error: ' . $e->getMessage());
+            $this->errorResponse('No se pudo completar la lección', 500);
+        }
     }
 
 

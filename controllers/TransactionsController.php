@@ -13,116 +13,155 @@ class TransactionsController extends BaseController
         parent::__construct();
         $this->transactionModel = new \m_transacciones();
     }
-    
+
     // Wrapper to match routes.ini (POST /transactions/register)
     public function register($f3)
     {
         return $this->create($f3);
     }
-    
+
     public function create($f3)
     {
         $decoded = $this->requireAuth($f3);
+        if (!$decoded) {
+            return;
+        }
+
         $body = $this->parseJsonOrEncryptedBody($f3);
         if (empty($body)) {
             return;
         }
 
+        try {
+            $fields = $this->normalizeTransactionFields($body);
+            $this->validateTransactionRelations($fields, (int)$decoded->data->user_id);
+        } catch (\InvalidArgumentException $exception) {
+            $this->errorResponse($exception->getMessage(), 400);
+            return;
+        }
+
         $this->transactionModel->set('usuario_id', $decoded->data->user_id);
-        $this->transactionModel->set('categoria_id', $body['categoria_id']);
-        $this->transactionModel->set('cuenta_id', $body['cuenta_id']);
-        $this->transactionModel->set('fecha', $body['fecha']);
-        $this->transactionModel->set('monto', $body['monto']);
-        $this->transactionModel->set('tipo', $body['tipo']);
-        $this->transactionModel->set('descripcion', $body['descripcion']);
+        $this->assignTransactionFields($fields);
 
         if ($this->transactionModel->save()) {
             $this->successResponse([
                 'mensaje' => 'Transacción creada correctamente',
                 'info' => [
-                    'id' => $this->transactionModel->get('id')
+                    'id' => (int)$this->transactionModel->get('id'),
+                    'date' => $this->transactionModel->get('fecha')
                 ]
             ]);
-        } else {
-            $this->errorResponse('No se pudo crear la transacción', 500);
+            return;
         }
+
+        $this->errorResponse('No se pudo crear la transacción', 500);
     }
 
     public function update($f3)
     {
-        
         $decoded = $this->requireAuth($f3);
+        if (!$decoded) {
+            return;
+        }
+
         $body = $this->parseJsonOrEncryptedBody($f3);
         if (empty($body)) {
             return;
         }
 
-        $transac_id = $body['transac_id'];
-        $this->transactionModel->load(['id = ? AND usuario_id = ?', $transac_id, $decoded->data->user_id]);
+        $transacId = (int)($body['transac_id'] ?? 0);
+        if ($transacId <= 0) {
+            $this->errorResponse('ID de transacción inválido', 400);
+            return;
+        }
+
+        $this->transactionModel->load(['id = ? AND usuario_id = ?', $transacId, $decoded->data->user_id]);
 
         if (!$this->transactionModel->loaded()) {
             $this->errorResponse('No tienes permiso para actualizar esta transacción o no existe', 403);
             return;
         }
-        $this->transactionModel->set('categoria_id', $body['categoria_id']);
-        $this->transactionModel->set('cuenta_id', $body['cuenta_id']);
-        $this->transactionModel->set('fecha', $body['fecha']);
-        $this->transactionModel->set('monto', $body['monto']);
-        $this->transactionModel->set('tipo', $body['tipo']);
-        $this->transactionModel->set('descripcion', $body['descripcion']);
 
-        $this->transactionModel->save();
+        try {
+            $fields = $this->normalizeTransactionFields($body);
+            $this->validateTransactionRelations($fields, (int)$decoded->data->user_id);
+        } catch (\InvalidArgumentException $exception) {
+            $this->errorResponse($exception->getMessage(), 400);
+            return;
+        }
+
+        $this->assignTransactionFields($fields);
+
+        if (!$this->transactionModel->save()) {
+            $this->errorResponse('No se pudo actualizar la transacción', 500);
+            return;
+        }
 
         $this->successResponse([
-            'mensaje' => 'Transacción actualizada',
-            'info' => ['id' => $this->transactionModel->get('id')]
+                'mensaje' => 'Transacción actualizada',
+                'info' => [
+                    'id' => (int)$this->transactionModel->get('id'),
+                    'date' => $this->transactionModel->get('fecha')
+            ]
         ]);
     }
 
     public function delete($f3)
     {
-        
         $decoded = $this->requireAuth($f3);
+        if (!$decoded) {
+            return;
+        }
+
         $body = $this->parseJsonOrEncryptedBody($f3);
         if (empty($body)) {
             return;
         }
-        
-        $transac_id = $body['transac_id'];
 
-        $this->transactionModel->load(['id = ? AND usuario_id = ?', $transac_id, $decoded->data->user_id]);
+        $transacId = (int)($body['transac_id'] ?? 0);
+        if ($transacId <= 0) {
+            $this->errorResponse('ID de transacción inválido', 400);
+            return;
+        }
+
+        $this->transactionModel->load(['id = ? AND usuario_id = ?', $transacId, $decoded->data->user_id]);
 
         if ($this->transactionModel->loaded()) {
             $this->transactionModel->erase();
             $this->successResponse([
                 'mensaje' => 'Transacción eliminada',
-                'info' => ['id' => $transac_id]
+                'info' => [
+                    'id' => $transacId
+                ]
             ]);
-        } else {
-            $this->errorResponse('No tienes permiso para eliminar esta transacción o no existe', 403);
+            return;
         }
+
+        $this->errorResponse('No tienes permiso para eliminar esta transacción o no existe', 403);
     }
 
     public function list($f3)
     {
         $decoded = $this->requireAuth($f3);
+        if (!$decoded) {
+            return;
+        }
 
         $result = $this->transactionModel->find(['usuario_id = ?', $decoded->data->user_id]);
         $items = [];
-    
+
         foreach ($result as $transaccion) {
             $items[] = $transaccion->cast();
         }
-    
+
         $this->successResponse([
             'items' => $items,
             'Total' => count($items),
-            'mensaje' => count($items) > 0 
-                ? 'Listado obtenido correctamente' 
+            'mensaje' => count($items) > 0
+                ? 'Listado obtenido correctamente'
                 : 'No hay registros que mostrar'
         ]);
     }
-
 
     /**
      * POST /transactions/filter
@@ -158,13 +197,24 @@ class TransactionsController extends BaseController
                 ?? []
         );
 
-        $type = strtolower(trim(
-            (string)(
-                $body['type']
-                ?? $body['tipo']
-                ?? ''
-            )
-        ));
+        $type = strtolower(trim((string)($body['type'] ?? $body['tipo'] ?? '')));
+
+        try {
+            $startDate = $this->normalizeFilterDate(
+                $body['start_date'] ?? $body['fecha_inicio'] ?? null
+            );
+            $endDate = $this->normalizeFilterDate(
+                $body['end_date'] ?? $body['fecha_fin'] ?? null
+            );
+        } catch (\InvalidArgumentException $exception) {
+            $this->errorResponse($exception->getMessage(), 400);
+            return;
+        }
+
+        if ($startDate !== null && $endDate !== null && $startDate > $endDate) {
+            $this->errorResponse('El rango de fechas es inválido', 400);
+            return;
+        }
 
         if ($type === 'expense') {
             $type = 'gasto';
@@ -172,35 +222,21 @@ class TransactionsController extends BaseController
             $type = 'ingreso';
         }
 
-        if (
-            $type !== ''
-            && !in_array($type, ['gasto', 'ingreso'], true)
-        ) {
-            $this->errorResponse(
-                'Tipo inválido. Valores permitidos: expense, income',
-                400
-            );
+        if ($type !== '' && !in_array($type, ['gasto', 'ingreso'], true)) {
+            $this->errorResponse('Tipo inválido. Valores permitidos: expense, income', 400);
             return;
         }
 
-        if (
-            empty($accountIds)
-            && empty($categoryIds)
-            && $type === ''
-        ) {
+        if (empty($accountIds) && empty($categoryIds) && $type === '' && $startDate === null && $endDate === null) {
             $this->errorResponse(
-                'Debe enviar al menos una cuenta, una categoría o un tipo para filtrar',
+                'Debe enviar al menos una cuenta, una categoría, un tipo o un rango de fechas para filtrar',
                 400
             );
             return;
         }
 
         if (!empty($accountIds)) {
-            $validAccountIds = $this->getValidFilterAccountIds(
-                $accountIds,
-                $userId
-            );
-
+            $validAccountIds = $this->getValidFilterAccountIds($accountIds, $userId);
             if (count($validAccountIds) !== count($accountIds)) {
                 $this->errorResponse(
                     'Una o más cuentas no existen o no pertenecen al usuario',
@@ -211,11 +247,7 @@ class TransactionsController extends BaseController
         }
 
         if (!empty($categoryIds)) {
-            $validCategoryIds = $this->getValidFilterCategoryIds(
-                $categoryIds,
-                $userId
-            );
-
+            $validCategoryIds = $this->getValidFilterCategoryIds($categoryIds, $userId);
             if (count($validCategoryIds) !== count($categoryIds)) {
                 $this->errorResponse(
                     'Una o más categorías no existen o no están disponibles para el usuario',
@@ -249,6 +281,16 @@ class TransactionsController extends BaseController
             $params[] = $type;
         }
 
+        if ($startDate !== null) {
+            $where[] = 't.fecha >= ?';
+            $params[] = $startDate;
+        }
+
+        if ($endDate !== null) {
+            $where[] = 't.fecha <= ?';
+            $params[] = $endDate;
+        }
+
         $db = \Base::instance()->get('DB');
 
         $sql = "
@@ -266,109 +308,35 @@ class TransactionsController extends BaseController
                 a.saldo AS cuenta_saldo,
                 t.monto,
                 t.tipo,
+                t.fecha,
                 t.fecha_registro,
                 t.descripcion
             FROM transacciones t
             INNER JOIN cuentas a ON a.id = t.cuenta_id
             INNER JOIN categorias c ON c.id = t.categoria_id
             WHERE " . implode(' AND ', $where) . "
-            ORDER BY t.fecha_registro DESC,
-                     t.id DESC
+            ORDER BY t.fecha DESC, t.id DESC
         ";
 
         $rows = $db->exec($sql, $params);
 
-        $accountMap = [];
-        $categoryMap = [];
         $expensesList = [];
         $incomeList = [];
         $totalAmount = 0.0;
 
         if (is_array($rows)) {
             foreach ($rows as $row) {
-                $amount = round((float)$row['monto'], 2);
-                $transactionType = strtolower(trim((string)$row['tipo']));
-
+                $transaction = $this->mapTransactionRow($row);
+                $amount = round((float)$transaction['amount'], 2);
                 $totalAmount += $amount;
 
-                $accountId = (int)$row['cuenta_id'];
-
-
-                $categoryId = (int)$row['categoria_id'];
-
-                if (!isset($categoryMap[$categoryId])) {
-                    $categoryMap[$categoryId] = [
-                        'category' => [
-                            'id' => $categoryId
-                        ],
-                        'amount' => 0.0
-                    ];
-                }
-
-                $categoryMap[$categoryId]['amount'] += $amount;
-
-                $transaction = [
-                    'id' => (int)$row['id'],
-                    'account' => [
-                        'id' => $accountId,
-                        'name' => $row['cuenta'],
-                        'icon' => $row['cuenta_icono'],
-                        'color' => $row['cuenta_color'],
-                        'amount' => number_format(
-                            (float)$row['cuenta_saldo'],
-                            2,
-                            '.',
-                            ''
-                        )
-                        
-                    ],
-                    'category' => [
-                        'id' => $categoryId,
-                        'name' => $row['categoria'],
-                        'icon' => $row['categoria_icono'],
-                        'color' => $row['categoria_color']
-                    ],
-                    'amount' => number_format($amount, 2, '.', ''),
-                    'type' => $transactionType === 'gasto'
-                        ? 'expense'
-                        : 'income',
-                    'date' => $row['fecha_registro'],
-                    'createdAt' => $row['fecha_registro'],
-                    'description' => $row['descripcion']
-                ];
-
-                if ($transactionType === 'ingreso') {
+                if ($transaction['type'] === 'income') {
                     $incomeList[] = $transaction;
-                } elseif ($transactionType === 'gasto') {
+                } else {
                     $expensesList[] = $transaction;
                 }
             }
         }
-
-        $accountList = array_values($accountMap);
-
-        $grafitcategory = [];
-
-        foreach ($categoryMap as $categoryData) {
-            $categoryAmount = round((float)$categoryData['amount'], 2);
-
-            $percentage = $totalAmount > 0
-                ? round(($categoryAmount / $totalAmount) * 100, 2)
-                : 0.00;
-
-            $grafitcategory[] = [
-                'category' => $categoryData['category'],
-                'amount' => number_format($categoryAmount, 2, '.', ''),
-                'percentage' => number_format($percentage, 2, '.', '')
-            ];
-        }
-
-        usort(
-            $grafitcategory,
-            function ($a, $b) {
-                return (float)$b['percentage'] <=> (float)$a['percentage'];
-            }
-        );
 
         $transactionCount = count($expensesList) + count($incomeList);
 
@@ -382,6 +350,89 @@ class TransactionsController extends BaseController
                 ? 'Transacciones filtradas correctamente'
                 : 'No se encontraron transacciones'
         ]);
+    }
+
+    protected function assignTransactionFields(array $body): void
+    {
+        $this->transactionModel->set('categoria_id', $body['categoria_id'] ?? null);
+        $this->transactionModel->set('cuenta_id', $body['cuenta_id'] ?? null);
+        $this->transactionModel->set('fecha', $body['fecha'] ?? null);
+        $this->transactionModel->set('monto', $body['monto'] ?? null);
+        $this->transactionModel->set('tipo', $body['tipo'] ?? null);
+        $this->transactionModel->set('descripcion', $body['descripcion'] ?? null);
+    }
+
+    protected function normalizeTransactionFields(array $body): array
+    {
+        $categoryId = (int)($body['categoria_id'] ?? 0);
+        $accountId = (int)($body['cuenta_id'] ?? 0);
+        $amount = round((float)($body['monto'] ?? 0), 2);
+        $type = strtolower(trim((string)($body['tipo'] ?? '')));
+        $date = $this->normalizeFilterDate($body['fecha'] ?? null);
+
+        if ($categoryId <= 0 || $accountId <= 0) {
+            throw new \InvalidArgumentException('La cuenta y la categoría son obligatorias');
+        }
+
+        if ($amount <= 0) {
+            throw new \InvalidArgumentException('El monto debe ser mayor que cero');
+        }
+
+        if ($date === null) {
+            throw new \InvalidArgumentException('La fecha es obligatoria');
+        }
+
+        if (!in_array($type, ['gasto', 'ingreso'], true)) {
+            throw new \InvalidArgumentException('Tipo inválido. Valores permitidos: gasto, ingreso');
+        }
+
+        return [
+            'categoria_id' => $categoryId,
+            'cuenta_id' => $accountId,
+            'fecha' => $date,
+            'monto' => $amount,
+            'tipo' => $type,
+            'descripcion' => trim((string)($body['descripcion'] ?? ''))
+        ];
+    }
+
+    protected function validateTransactionRelations(array $fields, int $userId): void
+    {
+        if (count($this->getValidFilterAccountIds([$fields['cuenta_id']], $userId)) !== 1) {
+            throw new \InvalidArgumentException('La cuenta no existe o no pertenece al usuario');
+        }
+
+        if (count($this->getValidFilterCategoryIds([$fields['categoria_id']], $userId)) !== 1) {
+            throw new \InvalidArgumentException('La categoría no existe o no está disponible para el usuario');
+        }
+    }
+
+    protected function mapTransactionRow(array $row): array
+    {
+        $amount = round((float)$row['monto'], 2);
+        $transactionType = strtolower(trim((string)$row['tipo']));
+
+        return [
+            'id' => (int)$row['id'],
+            'account' => [
+                'id' => (int)$row['cuenta_id'],
+                'name' => $row['cuenta'],
+                'icon' => $row['cuenta_icono'],
+                'color' => $row['cuenta_color'],
+                'amount' => number_format((float)$row['cuenta_saldo'], 2, '.', '')
+            ],
+            'category' => [
+                'id' => (int)$row['categoria_id'],
+                'name' => $row['categoria'],
+                'icon' => $row['categoria_icono'],
+                'color' => $row['categoria_color']
+            ],
+            'amount' => number_format($amount, 2, '.', ''),
+            'type' => $transactionType === 'gasto' ? 'expense' : 'income',
+            'date' => $row['fecha'],
+            'createdAt' => $row['fecha_registro'],
+            'description' => $row['descripcion']
+        ];
     }
 
     protected function normalizeFilterIds($value): array
@@ -406,16 +457,35 @@ class TransactionsController extends BaseController
         return array_values(array_unique($ids));
     }
 
+    protected function normalizeFilterDate($value): ?string
+    {
+        if ($value === null || trim((string)$value) === '') {
+            return null;
+        }
+
+        $value = trim((string)$value);
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+        $errors = \DateTimeImmutable::getLastErrors();
+
+        if (!$date || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))) {
+            throw new \InvalidArgumentException('Formato de fecha inválido. Use YYYY-MM-DD');
+        }
+
+        return $date->format('Y-m-d');
+    }
+
     protected function getValidFilterAccountIds(array $ids, int $userId): array
     {
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
         $params = $ids;
         $params[] = $userId;
+
         $db = \Base::instance()->get('DB');
         $rows = $db->exec(
             "SELECT id FROM cuentas WHERE id IN ($placeholders) AND usuario_id = ?",
             $params
         );
+
         return is_array($rows)
             ? array_map(fn($row) => (int)$row['id'], $rows)
             : [];
@@ -426,14 +496,15 @@ class TransactionsController extends BaseController
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
         $params = $ids;
         $params[] = $userId;
+
         $db = \Base::instance()->get('DB');
         $rows = $db->exec(
             "SELECT id FROM categorias WHERE id IN ($placeholders) AND (usuario_id = ? OR usuario_id IS NULL)",
             $params
         );
+
         return is_array($rows)
             ? array_map(fn($row) => (int)$row['id'], $rows)
             : [];
     }
-
 }
