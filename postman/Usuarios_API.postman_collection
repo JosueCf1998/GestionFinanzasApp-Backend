@@ -1,0 +1,430 @@
+{
+  "info": {
+    "_postman_id": "3834a7b4-37e6-4607-816d-de18600abac6",
+    "name": "Usuarios",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "36127622"
+  },
+  "item": [
+    {
+      "name": "login",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"email\": \"gregpribonifas@gmail.com\", \r\n  \"password\": \"Prueba12345\"\r\n}\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.gfinvia.com/users/login",
+          "protocol": "https",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "users",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "register",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"nombre\": \"Gregori\",\r\n    \"apellidos\": \"Bonifas\",\r\n    \"email\": \"gregpribonifas@gmail.com\",\r\n    \"password\": \"Prueba12345\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.gfinvia.com/users/register",
+          "protocol": "https",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "users",
+            "register"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "listAll",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost/GestionFinanzasApp-Backend/users/list",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "path": [
+            "GestionFinanzasApp-Backend",
+            "users",
+            "list"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "update",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"nombre\": \"Alexia\",\r\n  \"apellidos\": \"Gutierrez\",\r\n  \"email\": \"alexia13@gmail.com\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "api.gfinvia.com/update-user/60",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "update-user",
+            "60"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "token timeout",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjQxLCJlbWFpbCI6IkRhdG9zIGNvbmZpZGVuY2lhbGVzIn0sImlhdCI6MTc1NTk4ODQ4NiwiZXhwIjoxNzU1OTg4Nzg2fQ.FbJ0ngE0nwLBfHKLvh122CfemwWuuD8Xk3eTK-dQAT4",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "api.gfinvia.com/perfil-usuario",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "perfil-usuario"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "delete user",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjI2LCJlbWFpbCI6Imx1aXMxMjNAZ21haWwuY29tIn0sImlhdCI6MTc1MzA3NDA0NiwiZXhwIjoxNzUzMDc0MjI2fQ.aDTy1bjAghG6aAj76OoDxnnMbOWpj39Z6jvzDv-0SQI",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"id\": \"59\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "api.gfinvia.com/dalete-user",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "dalete-user"
+          ],
+          "query": [
+            {
+              "key": "id",
+              "value": "26",
+              "type": "text",
+              "disabled": true
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "test",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{ \r\n    \"email\": \"tucorreo@dominio.com\",\r\n\"encrypted\":\"bVMhPKZsRfnWJcfw9RomOhj3zqAYhBCJFDRELX7wxAM=\" }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "api.gfinvia.com/test",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "test"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "forget-password",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"email\": \"d0CDuoJ+4+EFouW59MIqCA==kG+297r796j/Dg7X496KtQ==yWVx3vL+kz6vTwLpmhzG1yngGZKzR2e1VgSYR3hZpaA=\",\r\n  \"new_password\": \"rPzA5++yp3ZyuUten01n7w==JL76+hG+33YjZpldABdi4g==jyODzUFXcIW4DW+0Yf093g==\"\r\n}\r\n"
+        },
+        "url": {
+          "raw": "api.gfinvia.com/forgot-password",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "forgot-password"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "verify",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"email\": \"gregpribonifas@gmail.com\",\r\n    \"code\": \"031402\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.gfinvia.com/users/register/verify",
+          "protocol": "https",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "users",
+            "register",
+            "verify"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "otp-setup-init",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjc0LCJlbWFpbCI6ImdyZWdwcmlib25pZmFzQGdtYWlsLmNvbSJ9LCJpYXQiOjE3ODg4NDkwNTksImV4cCI6MTg4ODg0OTA1OX0.VlFpz4gLbkHhPIJYj8_8sNL3foXpKZCMcXDFHo8kiR8"
+          }
+        ],
+        "url": {
+          "raw": "https://api.gfinvia.com/users/otp/setup/init",
+          "protocol": "https",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "users",
+            "otp",
+            "setup",
+            "init"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "otp-setup-confirm",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRhIjp7InVzZXJfaWQiOjc0LCJlbWFpbCI6ImdyZWdwcmlib25pZmFzQGdtYWlsLmNvbSJ9LCJpYXQiOjE3ODg4NDkwNTksImV4cCI6MTg4ODg0OTA1OX0.VlFpz4gLbkHhPIJYj8_8sNL3foXpKZCMcXDFHo8kiR8"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"otp_code\": \"186525\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.gfinvia.com/users/otp/setup/confirm",
+          "protocol": "https",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "users",
+            "otp",
+            "setup",
+            "confirm"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "password-reset/-equest",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"email\": \"gregpribonifas@gmail.com\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.gfinvia.com/users/password-reset/request",
+          "protocol": "https",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "users",
+            "password-reset",
+            "request"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "password-reset-confirm",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"email\": \"gregpribonifas@gmail.com\",\r\n    \"reset_token\": \"76E661FEB09A8F974A43EB7E56D074ED\",\r\n    \"otp_code\": \"890714\",\r\n    \"new_password\": \"NuevaPrueba12345\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.gfinvia.com/users/password-reset/confirm",
+          "protocol": "https",
+          "host": [
+            "api",
+            "gfinvia",
+            "com"
+          ],
+          "path": [
+            "users",
+            "password-reset",
+            "confirm"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "bearer_token_0cpv",
+      "secret": true
+    },
+    {
+      "key": "json_web_token_0c9m",
+      "secret": true
+    }
+  ]
+}

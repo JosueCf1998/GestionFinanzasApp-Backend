@@ -11,6 +11,11 @@ class ComposerStaticInit20fad51902f91e7fd3039e016a6556b5
         array (
             'Utils\\' => 6,
         ),
+        'P' =>
+        array (
+            'PragmaRX\\Google2FA\\' => 19,
+            'ParagonIE\\ConstantTime\\' => 23,
+        ),
         'F' =>
         array (
             'Firebase\\JWT\\' => 13,
@@ -25,6 +30,14 @@ class ComposerStaticInit20fad51902f91e7fd3039e016a6556b5
         'Utils\\' =>
         array (
             0 => __DIR__ . '/../..' . '/utils',
+        ),
+        'PragmaRX\\Google2FA\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/pragmarx/google2fa/src',
+        ),
+        'ParagonIE\\ConstantTime\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/paragonie/constant_time_encoding/src',
         ),
         'Firebase\\JWT\\' =>
         array (

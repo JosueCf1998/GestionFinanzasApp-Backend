@@ -1,6 +1,7 @@
 {
     "require": {
-        "firebase/php-jwt": "^6.11"
+        "firebase/php-jwt": "^6.11",
+        "pragmarx/google2fa": "^9.1"
     },
     "autoload": {
         "psr-4": {

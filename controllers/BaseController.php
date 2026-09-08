@@ -16,6 +16,8 @@ class BaseController
         require_once __DIR__ . '/../helpers/JwtHelper.php';
         require_once __DIR__ . '/../helpers/SessionHelper.php';
         require_once __DIR__ . '/../helpers/AesDecryptor.php';
+        require_once __DIR__ . '/../helpers/MailHelper.php';
+        require_once __DIR__ . '/../helpers/OtpHelper.php';
 
         $this->jwtKey = getenv('JWT_SECRET') ?: '$#Gre1410#$';
         $this->encryptionKey = getenv('ENCRYPTION_KEY') ?: '$#Gre1410';
